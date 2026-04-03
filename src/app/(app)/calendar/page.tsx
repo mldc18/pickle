@@ -205,7 +205,7 @@ export default function CalendarPage() {
             )}
 
             {/* Player list with no-show toggles for past dates (admin only) */}
-            {gd && gd.registeredPlayers.length > 0 && (past || todayDay) && (
+            {isAdmin && gd && gd.registeredPlayers.length > 0 && (past || todayDay) && (
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-muted">Players</p>

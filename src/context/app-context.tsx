@@ -21,6 +21,7 @@ interface AppContextType {
   blockDate: (date: string, message: string) => void;
   unblockDate: (date: string) => void;
   toggleNoShow: (date: string, userId: string) => void;
+  incrementNoShow: (userId: string) => void;
   getGameDay: (date: string) => GameDay | undefined;
 }
 
@@ -167,6 +168,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   }, [gameDays]);
 
+  const incrementNoShow = useCallback((userId: string) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId ? { ...u, noShowCount: u.noShowCount + 1 } : u
+      )
+    );
+  }, []);
+
   const getGameDay = useCallback((date: string): GameDay | undefined => {
     return gameDays[date];
   }, [gameDays]);
@@ -188,6 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         blockDate,
         unblockDate,
         toggleNoShow,
+        incrementNoShow,
         getGameDay,
       }}
     >
