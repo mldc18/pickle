@@ -79,13 +79,18 @@ export function CameraCapture({ onCapture, previewUrl }: CameraCaptureProps) {
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="relative w-40 h-40 rounded-[20px] overflow-hidden bg-input-bg border border-card-border">
+        <video
+          ref={videoRef}
+          className="w-full h-full object-cover"
+          playsInline
+          muted
+          style={{ display: streaming && !previewUrl ? "block" : "none" }}
+        />
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={previewUrl} alt="Profile preview" className="w-full h-full object-cover" />
-        ) : streaming ? (
-          <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted">
+          <img src={previewUrl} alt="Profile preview" className="absolute inset-0 w-full h-full object-cover" />
+        ) : streaming ? null : (
+          <div className="absolute inset-0 flex items-center justify-center text-muted">
             <Camera className="h-8 w-8" />
           </div>
         )}
