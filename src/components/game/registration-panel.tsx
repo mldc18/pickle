@@ -8,8 +8,8 @@ import { MAX_SLOTS } from "@/lib/constants";
 import { Ban, CreditCard } from "lucide-react";
 
 export function RegistrationPanel() {
-  const { user } = useAuth();
-  const { gameDay, getRegistrationStatus } = useApp();
+  const { user, isAdmin } = useAuth();
+  const { gameDay, getRegistrationStatus, users } = useApp();
 
   if (!user) return null;
 
@@ -17,6 +17,10 @@ export function RegistrationPanel() {
   const filled = gameDay.registeredPlayers.length;
   const fillPercent = Math.round((filled / MAX_SLOTS) * 100);
   const isBlocked = status === "blocked";
+  // Derive the current user's paid status from app-context (source of truth
+  // from monthly_payments). Admins and super_admins bypass the paid check.
+  const currentUserRow = users.find((u) => u.id === user.id);
+  const effectivePaid = isAdmin || (currentUserRow?.isPaid ?? false);
 
   return (
     <div className="flex flex-col gap-4">
@@ -70,7 +74,7 @@ export function RegistrationPanel() {
       )}
 
       {/* Unpaid Warning */}
-      {!user.isPaid && (
+      {!effectivePaid && (
         <div className="flex items-start gap-2 text-[11px] leading-snug text-warning-dark bg-warning-soft rounded-[10px] px-3 py-2 border border-warning/20">
           <CreditCard className="h-3 w-3 shrink-0 mt-0.5" />
           <span>Payment required — awaiting admin approval.</span>

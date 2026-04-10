@@ -6,7 +6,7 @@ import { useApp } from "@/context/app-context";
 
 export function MobileNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const {
     registerForGame,
     unregisterFromGame,
@@ -14,6 +14,7 @@ export function MobileNav() {
     isWaitlisted,
     getWaitlistPosition,
     getRegistrationStatus,
+    users,
   } = useApp();
 
   const showCTA = pathname === "/dashboard" && !!user;
@@ -23,7 +24,11 @@ export function MobileNav() {
   const registered = isRegistered(user!.id);
   const waitlisted = isWaitlisted(user!.id);
   const waitPos = getWaitlistPosition(user!.id);
-  const canRegister = status === "open" && user!.isPaid;
+  // Current user's paid status comes from app-context (monthly_payments).
+  // Admins and super_admins bypass the paid check entirely.
+  const currentUserRow = users.find((u) => u.id === user!.id);
+  const effectivePaid = isAdmin || (currentUserRow?.isPaid ?? false);
+  const canRegister = status === "open" && effectivePaid;
 
   function handleToggle() {
     if (!user) return;
@@ -61,7 +66,7 @@ export function MobileNav() {
           >
             Waitlisted #{waitPos} — Tap to Leave
           </button>
-        ) : !user!.isPaid ? (
+        ) : !effectivePaid ? (
           <button
             disabled
             className="w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex items-center justify-center gap-2 opacity-50 cursor-not-allowed border-0 bg-card-border text-muted"
