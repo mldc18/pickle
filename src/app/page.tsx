@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Trophy } from "lucide-react";
 
 export default function Home() {
   return (
@@ -7,11 +6,12 @@ export default function Home() {
       <div className="absolute inset-0 bg-gradient-to-br from-[#34D399]/5 via-transparent to-[#FBBF24]/5" />
 
       <div className="relative z-10 flex flex-col items-center animate-fade-up">
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[22px] shadow-[0_8px_28px_rgba(52,211,153,0.25)]" style={{ background: "linear-gradient(145deg, #34D399, #059669)" }}>
-          <Trophy className="h-10 w-10 text-white" strokeWidth={2.5} />
-        </div>
-        <h1 className="text-4xl font-extrabold tracking-[-1px] text-accent-hover">LAMPA</h1>
-        <p className="mt-1 text-[13px] font-semibold tracking-[2px] uppercase text-muted">La Marea Pickleball Association</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/lampa-logo.png"
+          alt="LAMPA — La Marea Pickleball Association"
+          className="mb-4 h-32 w-32 rounded-full object-cover shadow-[0_8px_28px_rgba(52,211,153,0.25)]"
+        />
         <p className="mt-4 mb-10 max-w-[300px] text-[15px] text-muted leading-relaxed">
           Register and join daily open play sessions at La Marea.
         </p>

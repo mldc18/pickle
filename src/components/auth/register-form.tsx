@@ -136,9 +136,13 @@ export function RegisterForm() {
         ← Back
       </Link>
       <form onSubmit={handleSubmit} className="bg-card border border-card-border rounded-[20px] p-8 shadow-[0_2px_12px_rgba(0,0,0,0.04)] animate-fade-up flex flex-col gap-5">
-        <div className="text-center mb-2">
-          <h1 className="text-[28px] font-extrabold text-accent-hover tracking-[-0.5px] mb-0.5">LAMPA</h1>
-          <p className="text-[11px] font-semibold tracking-[1.5px] uppercase text-text-muted">La Marea Pickleball Association</p>
+        <div className="flex justify-center mb-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/lampa-logo.png"
+            alt="LAMPA — La Marea Pickleball Association"
+            className="h-24 w-24 rounded-full object-cover"
+          />
         </div>
 
         {/* Step Indicator */}
