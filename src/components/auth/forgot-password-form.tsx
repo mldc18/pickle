@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Send, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import Link from "next/link";
 
 export function ForgotPasswordForm() {
@@ -17,44 +15,52 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <div className="text-center mb-2">
-        <h1 className="text-2xl font-bold text-accent tracking-wider">LAMPA</h1>
-        <p className="text-xs text-muted mt-1">La Marea Pickleball Association</p>
-      </div>
-
-      <h2 className="text-lg font-semibold text-center">Reset Password</h2>
-
-      {submitted ? (
-        <div className="text-center flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-success bg-success/10 rounded-lg p-3">
-            <CheckCircle className="h-4 w-4 shrink-0" />
-            If an account with that username exists, password reset instructions have been sent.
-          </div>
-          <Link href="/login" className="inline-flex items-center gap-1 text-sm text-accent hover:underline">
-            <ArrowLeft className="h-3 w-3" />
-            Back to Sign In
-          </Link>
+    <div className="w-full max-w-[400px]">
+      <Link href="/login" className="inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-foreground transition-colors mb-6">
+        ← Back
+      </Link>
+      <form onSubmit={handleSubmit} className="bg-card border border-card-border rounded-[20px] p-8 shadow-[0_2px_12px_rgba(0,0,0,0.04)] animate-fade-up">
+        <div className="text-center mb-7">
+          <h1 className="text-[28px] font-extrabold text-accent-hover tracking-[-0.5px] mb-0.5">LAMPA</h1>
+          <p className="text-[11px] font-semibold tracking-[1.5px] uppercase text-text-muted">La Marea Pickleball Association</p>
         </div>
-      ) : (
-        <>
-          <p className="text-sm text-muted text-center">
-            Enter your username and we&#39;ll send reset instructions.
-          </p>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="forgot-user">Username</Label>
-            <Input id="forgot-user" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your username" />
+
+        <h2 className="text-[20px] font-extrabold text-center mb-6">Reset Password</h2>
+
+        {submitted ? (
+          <div className="text-center flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-accent-hover bg-accent-soft rounded-[12px] p-3 border border-accent/15">
+              <CheckCircle className="h-4 w-4 shrink-0" />
+              If an account with that username exists, password reset instructions have been sent.
+            </div>
+            <Link href="/login" className="text-sm font-semibold text-accent-hover hover:text-accent transition-colors">
+              Back to Sign In
+            </Link>
           </div>
-          <Button type="submit" size="lg" className="w-full">
-            <Send className="h-4 w-4" />
-            Send Reset Link
-          </Button>
-          <Link href="/login" className="inline-flex items-center justify-center gap-1 text-sm text-accent hover:underline">
-            <ArrowLeft className="h-3 w-3" />
-            Back to Sign In
-          </Link>
-        </>
-      )}
-    </form>
+        ) : (
+          <>
+            <p className="text-sm text-muted text-center font-medium mb-5">
+              Enter your username and we&#39;ll send reset instructions.
+            </p>
+            <div className="mb-[18px]">
+              <label className="block text-[13px] font-bold text-foreground mb-1.5">Username</label>
+              <Input id="forgot-user" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your username" />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-4 mt-1.5 mb-5 rounded-[14px] font-extrabold text-base text-[#111] transition-all cursor-pointer border-0 shadow-[0_4px_16px_rgba(52,211,153,0.25)] hover:-translate-y-px hover:shadow-[0_6px_24px_rgba(52,211,153,0.35)] active:translate-y-0 flex items-center justify-center gap-2"
+              style={{ background: "var(--accent)" }}
+            >
+              → Send Reset Link
+            </button>
+            <div className="text-center">
+              <Link href="/login" className="text-sm font-semibold text-accent-hover hover:text-accent transition-colors">
+                Back to Sign In
+              </Link>
+            </div>
+          </>
+        )}
+      </form>
+    </div>
   );
 }

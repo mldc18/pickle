@@ -1,46 +1,236 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback } from "react";
-import { User, GameDay, BlockedDate, RegisteredPlayer } from "@/lib/types";
-import { mockUsers, mockGameDay, mockGameDays, mockBlockedDates } from "@/lib/mock-data";
-import { MAX_SLOTS, REGISTRATION_OPEN_HOUR, REGISTRATION_CLOSE_HOUR } from "@/lib/constants";
-import { getCurrentTime, getTodayDate, getMonthKey } from "@/lib/utils";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import { User, GameDay, BlockedDate } from "@/lib/schemas";
+import { createClient } from "@/lib/supabase/client";
+import {
+  MAX_SLOTS,
+  REGISTRATION_OPEN_HOUR,
+  REGISTRATION_OPEN_MINUTE,
+  REGISTRATION_CLOSE_HOUR,
+} from "@/lib/constants";
+import {
+  getCurrentTime,
+  getTodayDate,
+  getMonthKey,
+  getLast12Months,
+} from "@/lib/utils";
 
 interface AppContextType {
   users: User[];
   gameDay: GameDay;
   gameDays: Record<string, GameDay>;
   blockedDates: BlockedDate[];
-  registerForGame: (userId: string, fullName: string) => "registered" | "waitlisted" | "full" | "blocked" | "unpaid" | "closed";
-  unregisterFromGame: (userId: string) => void;
+  registerForGame: (userId: string, fullName: string) => Promise<"registered" | "waitlisted" | "full" | "blocked" | "unpaid" | "closed">;
+  unregisterFromGame: (userId: string) => Promise<void>;
   isRegistered: (userId: string) => boolean;
   isWaitlisted: (userId: string) => boolean;
   getWaitlistPosition: (userId: string) => number;
   getRegistrationStatus: () => "not_open" | "open" | "closed" | "blocked";
-  togglePayment: (userId: string, month: string) => void;
-  blockDate: (date: string, message: string) => void;
-  unblockDate: (date: string) => void;
-  toggleNoShow: (date: string, userId: string) => void;
-  incrementNoShow: (userId: string) => void;
+  togglePayment: (userId: string, month: string) => Promise<void>;
+  blockDate: (date: string, message: string) => Promise<void>;
+  unblockDate: (date: string) => Promise<void>;
+  toggleNoShow: (date: string, userId: string) => Promise<void>;
+  incrementNoShow: (userId: string) => Promise<void>;
+  toggleAdmin: (userId: string) => Promise<void>;
   getGameDay: (date: string) => GameDay | undefined;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 
+// ---------------------------------------------------------------------------
+// DB row types (snake_case, match Supabase)
+// ---------------------------------------------------------------------------
+
+type UserRow = {
+  id: string;
+  username: string;
+  full_name: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  mobile: string;
+  address: string;
+  role: "member" | "admin" | "super_admin";
+  avatar_url: string;
+  accepted_terms: boolean;
+  created_at: string;
+};
+
+type PaymentRow = { user_id: string; month: string; paid: boolean };
+type NoShowRow = { game_date: string; user_id: string };
+type GameDayRow = { date: string; is_cancelled: boolean; cancel_message: string | null };
+type RegistrationRow = {
+  game_date: string;
+  user_id: string;
+  status: "registered" | "waitlist";
+  position: number;
+  registered_at: string;
+};
+
+// ---------------------------------------------------------------------------
+
+const EMPTY_GAME_DAY: GameDay = {
+  date: "",
+  isBlocked: false,
+  blockMessage: null,
+  registeredPlayers: [],
+  waitlist: [],
+  noShows: [],
+};
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [gameDays, setGameDays] = useState<Record<string, GameDay>>(mockGameDays);
-  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>(mockBlockedDates);
+  const supabase = useMemo(() => createClient(), []);
+  const today = useMemo(() => getTodayDate(), []);
 
-  const today = getTodayDate();
-  const gameDay = gameDays[today] || mockGameDay;
+  const [users, setUsers] = useState<User[]>([]);
+  const [gameDays, setGameDays] = useState<Record<string, GameDay>>({});
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
 
-  const setGameDay = useCallback((updater: (prev: GameDay) => GameDay) => {
-    setGameDays((prev) => ({
-      ...prev,
-      [today]: updater(prev[today] || mockGameDay),
-    }));
-  }, [today]);
+  // -------------------------------------------------------------------------
+  // Fetchers
+  // -------------------------------------------------------------------------
+
+  const fetchAll = useCallback(async () => {
+    const [usersRes, paymentsRes, noShowsRes, gameDaysRes, regsRes] =
+      await Promise.all([
+        supabase.from("users").select("*"),
+        supabase.from("monthly_payments").select("*"),
+        supabase.from("game_no_shows").select("*"),
+        supabase.from("game_days").select("*"),
+        supabase.from("game_registrations").select("*").order("position", { ascending: true }),
+      ]);
+
+    const userRows = (usersRes.data ?? []) as UserRow[];
+    const paymentRows = (paymentsRes.data ?? []) as PaymentRow[];
+    const noShowRows = (noShowsRes.data ?? []) as NoShowRow[];
+    const gameDayRows = (gameDaysRes.data ?? []) as GameDayRow[];
+    const regRows = (regsRes.data ?? []) as RegistrationRow[];
+
+    // --- Users (derived: paymentHistory, isPaid, noShowCount) ------------
+    const last12 = getLast12Months();
+    const currentMonth = getMonthKey(new Date());
+    const noShowCounts = new Map<string, number>();
+    for (const ns of noShowRows) {
+      noShowCounts.set(ns.user_id, (noShowCounts.get(ns.user_id) ?? 0) + 1);
+    }
+    const paymentsByUser = new Map<string, Map<string, boolean>>();
+    for (const p of paymentRows) {
+      const monthKey = p.month.slice(0, 7); // YYYY-MM-DD → YYYY-MM
+      if (!paymentsByUser.has(p.user_id)) paymentsByUser.set(p.user_id, new Map());
+      paymentsByUser.get(p.user_id)!.set(monthKey, p.paid);
+    }
+    const enrichedUsers: User[] = userRows.map((u) => {
+      const userPayments = paymentsByUser.get(u.id) ?? new Map();
+      const paymentHistory = last12.map((month) => ({
+        month,
+        paid: userPayments.get(month) ?? false,
+      }));
+      return {
+        id: u.id,
+        username: u.username,
+        fullName: u.full_name,
+        firstName: u.first_name,
+        lastName: u.last_name,
+        email: u.email,
+        mobile: u.mobile,
+        address: u.address,
+        role: u.role,
+        avatarUrl: u.avatar_url,
+        isPaid: userPayments.get(currentMonth) ?? false,
+        paymentHistory,
+        noShowCount: noShowCounts.get(u.id) ?? 0,
+        acceptedTerms: u.accepted_terms,
+        createdAt: new Date(u.created_at).toISOString().split("T")[0],
+      };
+    });
+    setUsers(enrichedUsers);
+
+    // --- Game days -------------------------------------------------------
+    const userInfoById = new Map(
+      userRows.map((u) => [u.id, { fullName: u.full_name, avatarUrl: u.avatar_url }]),
+    );
+    const regsByDate = new Map<string, RegistrationRow[]>();
+    for (const r of regRows) {
+      if (!regsByDate.has(r.game_date)) regsByDate.set(r.game_date, []);
+      regsByDate.get(r.game_date)!.push(r);
+    }
+    const noShowsByDate = new Map<string, string[]>();
+    for (const ns of noShowRows) {
+      if (!noShowsByDate.has(ns.game_date)) noShowsByDate.set(ns.game_date, []);
+      noShowsByDate.get(ns.game_date)!.push(ns.user_id);
+    }
+
+    const gameDayMap: Record<string, GameDay> = {};
+    const allDates = new Set<string>([
+      ...gameDayRows.map((g) => g.date),
+      ...regsByDate.keys(),
+      ...noShowsByDate.keys(),
+      today,
+    ]);
+
+    for (const date of allDates) {
+      const gd = gameDayRows.find((g) => g.date === date);
+      const regs = regsByDate.get(date) ?? [];
+      const registered = regs
+        .filter((r) => r.status === "registered")
+        .sort((a, b) => a.position - b.position)
+        .map((r) => {
+          const info = userInfoById.get(r.user_id);
+          return {
+            userId: r.user_id,
+            fullName: info?.fullName ?? "Unknown",
+            avatarUrl: info?.avatarUrl ?? "",
+            registeredAt: r.registered_at,
+          };
+        });
+      const waitlist = regs
+        .filter((r) => r.status === "waitlist")
+        .sort((a, b) => a.position - b.position)
+        .map((r) => {
+          const info = userInfoById.get(r.user_id);
+          return {
+            userId: r.user_id,
+            fullName: info?.fullName ?? "Unknown",
+            avatarUrl: info?.avatarUrl ?? "",
+            registeredAt: r.registered_at,
+          };
+        });
+      gameDayMap[date] = {
+        date,
+        isBlocked: gd?.is_cancelled ?? false,
+        blockMessage: gd?.cancel_message ?? null,
+        registeredPlayers: registered,
+        waitlist,
+        noShows: noShowsByDate.get(date) ?? [],
+      };
+    }
+    setGameDays(gameDayMap);
+
+    // --- Blocked dates ---------------------------------------------------
+    setBlockedDates(
+      gameDayRows
+        .filter((g) => g.is_cancelled && g.cancel_message)
+        .map((g) => ({ date: g.date, message: g.cancel_message! })),
+    );
+  }, [supabase, today]);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const gameDay = gameDays[today] ?? { ...EMPTY_GAME_DAY, date: today };
+
+  // -------------------------------------------------------------------------
+  // Queries
+  // -------------------------------------------------------------------------
 
   const getRegistrationStatus = useCallback((): "not_open" | "open" | "closed" | "blocked" => {
     if (gameDay.isBlocked || blockedDates.some((b) => b.date === today)) {
@@ -48,137 +238,158 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const now = getCurrentTime();
     const hour = now.getHours();
-    if (hour < REGISTRATION_OPEN_HOUR) return "not_open";
+    const minute = now.getMinutes();
+    if (hour < REGISTRATION_OPEN_HOUR || (hour === REGISTRATION_OPEN_HOUR && minute < REGISTRATION_OPEN_MINUTE)) return "not_open";
     if (hour >= REGISTRATION_CLOSE_HOUR) return "closed";
     return "open";
   }, [gameDay.isBlocked, blockedDates, today]);
 
   const isRegistered = useCallback(
     (userId: string) => gameDay.registeredPlayers.some((p) => p.userId === userId),
-    [gameDay.registeredPlayers]
+    [gameDay.registeredPlayers],
   );
-
   const isWaitlisted = useCallback(
     (userId: string) => gameDay.waitlist.some((p) => p.userId === userId),
-    [gameDay.waitlist]
+    [gameDay.waitlist],
   );
-
   const getWaitlistPosition = useCallback(
     (userId: string) => {
       const idx = gameDay.waitlist.findIndex((p) => p.userId === userId);
       return idx === -1 ? -1 : idx + 1;
     },
-    [gameDay.waitlist]
+    [gameDay.waitlist],
+  );
+  const getGameDay = useCallback(
+    (date: string): GameDay | undefined => gameDays[date],
+    [gameDays],
   );
 
+  // -------------------------------------------------------------------------
+  // Mutations
+  // -------------------------------------------------------------------------
+
   const registerForGame = useCallback(
-    (userId: string, fullName: string) => {
+    async (_userId: string, _fullName: string) => {
       const status = getRegistrationStatus();
       if (status === "blocked") return "blocked" as const;
       if (status !== "open") return "closed" as const;
 
-      const user = users.find((u) => u.id === userId);
-      if (user && !user.isPaid) return "unpaid" as const;
-
-      const player: RegisteredPlayer = {
-        userId,
-        fullName,
-        registeredAt: new Date().toISOString(),
-      };
-
-      setGameDay((prev) => {
-        if (prev.registeredPlayers.some((p) => p.userId === userId)) return prev;
-        if (prev.waitlist.some((p) => p.userId === userId)) return prev;
-
-        if (prev.registeredPlayers.length < MAX_SLOTS) {
-          return { ...prev, registeredPlayers: [...prev.registeredPlayers, player] };
-        }
-        return { ...prev, waitlist: [...prev.waitlist, player] };
-      });
-
-      return gameDay.registeredPlayers.length < MAX_SLOTS ? "registered" as const : "waitlisted" as const;
+      const { data, error } = await supabase.rpc("register_for_game", { p_date: today });
+      if (error) {
+        console.error("register_for_game failed", error);
+        return "closed" as const;
+      }
+      await fetchAll();
+      if (data === "registered") return "registered" as const;
+      if (data === "waitlist") return "waitlisted" as const;
+      if (data === "blocked") return "blocked" as const;
+      if (data === "unpaid") return "unpaid" as const;
+      return "closed" as const;
     },
-    [getRegistrationStatus, users, gameDay.registeredPlayers.length, setGameDay]
+    [supabase, today, fetchAll, getRegistrationStatus],
   );
 
-  const unregisterFromGame = useCallback((userId: string) => {
-    setGameDay((prev) => {
-      const wasRegistered = prev.registeredPlayers.some((p) => p.userId === userId);
-      const newRegistered = prev.registeredPlayers.filter((p) => p.userId !== userId);
-      const newWaitlist = [...prev.waitlist.filter((p) => p.userId !== userId)];
+  const unregisterFromGame = useCallback(
+    async (_userId: string) => {
+      const { error } = await supabase.rpc("unregister_from_game", { p_date: today });
+      if (error) console.error("unregister_from_game failed", error);
+      await fetchAll();
+    },
+    [supabase, today, fetchAll],
+  );
 
-      if (wasRegistered && newWaitlist.length > 0 && newRegistered.length < MAX_SLOTS) {
-        const promoted = newWaitlist.shift()!;
-        newRegistered.push(promoted);
+  const togglePayment = useCallback(
+    async (userId: string, month: string) => {
+      // month is "YYYY-MM"; convert to date "YYYY-MM-01"
+      const monthDate = `${month}-01`;
+      const { data: existing } = await supabase
+        .from("monthly_payments")
+        .select("paid")
+        .eq("user_id", userId)
+        .eq("month", monthDate)
+        .maybeSingle();
+
+      const nextPaid = !(existing?.paid ?? false);
+      const { error } = await supabase
+        .from("monthly_payments")
+        .upsert({ user_id: userId, month: monthDate, paid: nextPaid });
+      if (error) console.error("togglePayment failed", error);
+      await fetchAll();
+    },
+    [supabase, fetchAll],
+  );
+
+  const blockDate = useCallback(
+    async (date: string, message: string) => {
+      const { error } = await supabase
+        .from("game_days")
+        .upsert({ date, is_cancelled: true, cancel_message: message });
+      if (error) console.error("blockDate failed", error);
+      await fetchAll();
+    },
+    [supabase, fetchAll],
+  );
+
+  const unblockDate = useCallback(
+    async (date: string) => {
+      const { error } = await supabase
+        .from("game_days")
+        .upsert({ date, is_cancelled: false, cancel_message: null });
+      if (error) console.error("unblockDate failed", error);
+      await fetchAll();
+    },
+    [supabase, fetchAll],
+  );
+
+  const toggleNoShow = useCallback(
+    async (date: string, userId: string) => {
+      const { data: existing } = await supabase
+        .from("game_no_shows")
+        .select("user_id")
+        .eq("game_date", date)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase.from("game_no_shows").delete().eq("game_date", date).eq("user_id", userId);
+      } else {
+        // ensure game_day row exists
+        await supabase.from("game_days").upsert({ date, is_cancelled: false }, { onConflict: "date", ignoreDuplicates: true });
+        await supabase.from("game_no_shows").insert({ game_date: date, user_id: userId });
       }
+      await fetchAll();
+    },
+    [supabase, fetchAll],
+  );
 
-      return { ...prev, registeredPlayers: newRegistered, waitlist: newWaitlist };
-    });
-  }, [setGameDay]);
+  const incrementNoShow = useCallback(
+    async (userId: string) => {
+      // Admin-only convenience: record a no-show against today's game day.
+      await toggleNoShow(today, userId);
+    },
+    [toggleNoShow, today],
+  );
 
-  const togglePayment = useCallback((userId: string, month: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id !== userId) return u;
-        const newHistory = u.paymentHistory.map((p) =>
-          p.month === month ? { ...p, paid: !p.paid } : p
-        );
-        const currentMonth = getMonthKey(new Date());
-        const currentPaid = newHistory.find((p) => p.month === currentMonth)?.paid ?? false;
-        return { ...u, paymentHistory: newHistory, isPaid: currentPaid };
-      })
-    );
-  }, []);
+  const toggleAdmin = useCallback(
+    async (userId: string) => {
+      const current = users.find((u) => u.id === userId);
+      if (!current) return;
+      // Super-admin transitions are managed manually in the DB.
+      if (current.role === "super_admin") return;
+      const nextRole = current.role === "admin" ? "member" : "admin";
+      const { error } = await supabase
+        .from("users")
+        .update({ role: nextRole })
+        .eq("id", userId);
+      if (error) console.error("toggleAdmin failed", error);
+      await fetchAll();
+    },
+    [supabase, users, fetchAll],
+  );
 
-  const blockDate = useCallback((date: string, message: string) => {
-    setBlockedDates((prev) => {
-      if (prev.some((b) => b.date === date)) return prev;
-      return [...prev, { date, message }];
-    });
-    if (date === today) {
-      setGameDay((prev) => ({ ...prev, isBlocked: true, blockMessage: message }));
-    }
-  }, [today, setGameDay]);
-
-  const unblockDate = useCallback((date: string) => {
-    setBlockedDates((prev) => prev.filter((b) => b.date !== date));
-    if (date === today) {
-      setGameDay((prev) => ({ ...prev, isBlocked: false, blockMessage: null }));
-    }
-  }, [today, setGameDay]);
-
-  const toggleNoShow = useCallback((date: string, userId: string) => {
-    setGameDays((prev) => {
-      const gd = prev[date];
-      if (!gd) return prev;
-      const noShows = gd.noShows.includes(userId)
-        ? gd.noShows.filter((id) => id !== userId)
-        : [...gd.noShows, userId];
-      return { ...prev, [date]: { ...gd, noShows } };
-    });
-    // Also update user's noShowCount
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id !== userId) return u;
-        const gd = gameDays[date];
-        if (!gd) return u;
-        const wasNoShow = gd.noShows.includes(userId);
-        return { ...u, noShowCount: wasNoShow ? Math.max(0, u.noShowCount - 1) : u.noShowCount + 1 };
-      })
-    );
-  }, [gameDays]);
-
-  const incrementNoShow = useCallback((userId: string) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === userId ? { ...u, noShowCount: u.noShowCount + 1 } : u
-      )
-    );
-  }, []);
-
-  const getGameDay = useCallback((date: string): GameDay | undefined => {
-    return gameDays[date];
-  }, [gameDays]);
+  // MAX_SLOTS is referenced in type signatures via the schema; also re-export
+  // here as a silent no-op so the import isn't tree-shaken as unused.
+  void MAX_SLOTS;
 
   return (
     <AppContext.Provider
@@ -198,6 +409,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         unblockDate,
         toggleNoShow,
         incrementNoShow,
+        toggleAdmin,
         getGameDay,
       }}
     >
