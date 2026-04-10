@@ -195,6 +195,11 @@ export function RegisterForm() {
                   setProfilePhoto(blob);
                   setPhotoPreview(url);
                 }}
+                onRetake={() => {
+                  if (photoPreview) URL.revokeObjectURL(photoPreview);
+                  setProfilePhoto(null);
+                  setPhotoPreview(null);
+                }}
               />
             </div>
 
