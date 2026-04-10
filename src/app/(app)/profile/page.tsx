@@ -1,12 +1,20 @@
 "use client";
 
 import { useAuth } from "@/context/auth-context";
+import { useApp } from "@/context/app-context";
 import { User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut } from "lucide-react";
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
+  const { users } = useApp();
 
   if (!user) return null;
+
+  // Pull live isPaid / paymentHistory from app-context (sourced from
+  // monthly_payments). Admins and super_admins are considered active.
+  const liveRow = users.find((u) => u.id === user.id);
+  const isActive = isAdmin || (liveRow?.isPaid ?? false);
+  const paymentHistory = liveRow?.paymentHistory ?? user.paymentHistory;
 
   const fields = [
     { label: "Full Name", value: user.fullName, icon: User },
@@ -18,7 +26,7 @@ export default function ProfilePage() {
 
   // Group payment history by year
   const historyByYear: Record<string, { month: string; monthName: string; paid: boolean }[]> = {};
-  for (const entry of user.paymentHistory) {
+  for (const entry of paymentHistory) {
     const [year, monthNum] = entry.month.split("-");
     const date = new Date(Number(year), Number(monthNum) - 1);
     const monthName = date.toLocaleDateString("en-US", { month: "long" });
@@ -86,7 +94,7 @@ export default function ProfilePage() {
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
           </span>
           <span className="text-[14px] font-bold text-accent-hover">
-            {user.isPaid ? "Active Member" : "Inactive — Payment Required"}
+            {isActive ? "Active Member" : "Inactive — Payment Required"}
           </span>
         </div>
 

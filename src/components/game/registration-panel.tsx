@@ -9,7 +9,14 @@ import { Ban, CreditCard } from "lucide-react";
 
 export function RegistrationPanel() {
   const { user, isAdmin } = useAuth();
-  const { gameDay, getRegistrationStatus, users } = useApp();
+  const {
+    gameDay,
+    getRegistrationStatus,
+    users,
+    registerForGame,
+    isRegistered,
+    isWaitlisted,
+  } = useApp();
 
   if (!user) return null;
 
@@ -21,6 +28,11 @@ export function RegistrationPanel() {
   // from monthly_payments). Admins and super_admins bypass the paid check.
   const currentUserRow = users.find((u) => u.id === user.id);
   const effectivePaid = isAdmin || (currentUserRow?.isPaid ?? false);
+  const alreadyInGame = isRegistered(user.id) || isWaitlisted(user.id);
+  const canRegister = status === "open" && effectivePaid && !alreadyInGame;
+  const handleRegisterClick = canRegister
+    ? () => { registerForGame(user.id, user.fullName); }
+    : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -86,6 +98,7 @@ export function RegistrationPanel() {
         players={gameDay.registeredPlayers}
         waitlist={gameDay.waitlist}
         currentUserId={user.id}
+        onRegisterClick={handleRegisterClick}
       />
 
     </div>

@@ -3,11 +3,14 @@
 import { RegisteredPlayer } from "@/lib/schemas";
 import { MAX_SLOTS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
+import { Plus, CircleDashed } from "lucide-react";
 
 interface PlayerListProps {
   players: RegisteredPlayer[];
   waitlist: RegisteredPlayer[];
   currentUserId?: string;
+  /** If provided, the first empty slot becomes a clickable register CTA. */
+  onRegisterClick?: () => void;
 }
 
 const AVATAR_GRADIENTS = [
@@ -47,7 +50,7 @@ function getGradient(index: number): [string, string] {
   return AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length] as [string, string];
 }
 
-export function PlayerList({ players, waitlist, currentUserId }: PlayerListProps) {
+export function PlayerList({ players, waitlist, currentUserId, onRegisterClick }: PlayerListProps) {
   const emptySlots = Math.max(0, MAX_SLOTS - players.length);
 
   return (
@@ -93,18 +96,41 @@ export function PlayerList({ players, waitlist, currentUserId }: PlayerListProps
         })}
 
         {/* Empty Slots */}
-        {Array.from({ length: emptySlots }).map((_, i) => (
-          <div
-            key={`empty-${i}`}
-            className="flex flex-col items-center gap-1.5 py-1.5 opacity-25 animate-pop"
-            style={{ animationDelay: `${0.3 + (players.length + i) * 0.02}s` }}
-          >
-            <div className="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center text-base text-text-muted bg-[#DDDDD8] border-[1.5px] border-dashed border-[#C5C5BE]">
-              +
+        {Array.from({ length: emptySlots }).map((_, i) => {
+          const isNextSlot = i === 0;
+          const isClickable = isNextSlot && !!onRegisterClick;
+          const delay = `${0.3 + (players.length + i) * 0.02}s`;
+
+          if (isClickable) {
+            return (
+              <button
+                key={`empty-${i}`}
+                type="button"
+                onClick={onRegisterClick}
+                className="flex flex-col items-center gap-1.5 py-1.5 animate-pop group cursor-pointer"
+                style={{ animationDelay: delay }}
+                aria-label="Register for this game"
+              >
+                <div className="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center bg-accent-soft border-[1.5px] border-dashed border-accent/40 text-accent-hover transition-all group-hover:scale-110 group-hover:bg-accent/15">
+                  <Plus className="h-5 w-5" strokeWidth={2.5} />
+                </div>
+                <span className="text-[11px] font-bold text-accent-hover">Join</span>
+              </button>
+            );
+          }
+
+          return (
+            <div
+              key={`empty-${i}`}
+              className="flex flex-col items-center gap-1.5 py-1.5 opacity-30 animate-pop"
+              style={{ animationDelay: delay }}
+            >
+              <div className="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center text-text-muted bg-[#DDDDD8] border-[1.5px] border-dashed border-[#C5C5BE]">
+                <CircleDashed className="h-5 w-5" strokeWidth={1.75} />
+              </div>
             </div>
-            <span className="text-[11px] font-semibold text-text-muted">Open</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Waitlist */}
