@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useApp } from "@/context/app-context";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -76,27 +75,26 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Header Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={prevMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <CardTitle className="text-base">{monthName}</CardTitle>
-            <Button variant="ghost" size="icon" onClick={nextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
+    <div className="flex flex-col gap-5">
+      {/* Month Navigation */}
+      <div className="relative bg-card border border-card-border rounded-[16px] p-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)] overflow-hidden animate-fade-up">
+        <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: "linear-gradient(90deg, var(--accent), var(--warning))" }} />
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="icon" onClick={prevMonth}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-[17px] font-extrabold tracking-[-0.3px]">{monthName}</span>
+          <Button variant="ghost" size="icon" onClick={nextMonth}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       {/* Calendar grid */}
-      <div>
+      <div className="animate-fade-up" style={{ animationDelay: "0.1s" }}>
         <div className="grid grid-cols-7 gap-1 mb-1">
           {dayNames.map((d) => (
-            <div key={d} className="text-center text-[10px] font-medium text-muted py-1">
+            <div key={d} className="text-center text-[10px] font-bold text-text-muted py-1 uppercase tracking-[1px]">
               {d}
             </div>
           ))}
@@ -121,19 +119,19 @@ export default function CalendarPage() {
                 key={day}
                 onClick={() => setSelectedDay(selected ? null : day)}
                 className={cn(
-                  "relative flex flex-col items-center justify-center rounded-lg text-sm transition-colors h-12",
-                  past && !todayDay && "text-muted/40",
+                  "relative flex flex-col items-center justify-center rounded-[8px] text-sm transition-all h-12",
+                  past && !todayDay && "text-text-muted",
                   blocked && !past && "bg-destructive/10 text-destructive",
-                  playable && !todayDay && "bg-accent/5 text-accent hover:bg-accent/15",
-                  todayDay && !selected && "bg-accent/15 text-accent font-bold ring-2 ring-accent/30",
+                  playable && !todayDay && "bg-accent-soft text-accent-hover hover:bg-accent/15",
+                  todayDay && !selected && "bg-accent/15 text-accent-hover font-bold ring-2 ring-accent/30",
                   selected && "bg-accent text-white font-bold",
                 )}
               >
-                <span>{day}</span>
+                <span className="font-semibold">{day}</span>
                 {count !== undefined && count > 0 && (
                   <span className={cn(
-                    "text-[8px] leading-none font-medium",
-                    selected ? "text-white/70" : past ? "text-muted/40" : "text-muted"
+                    "text-[8px] leading-none font-bold",
+                    selected ? "text-white/70" : past ? "text-text-muted" : "text-muted"
                   )}>
                     {count}p
                   </span>
@@ -144,17 +142,17 @@ export default function CalendarPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 mt-3 text-[10px] text-muted">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center gap-4 mt-3 text-[10px] font-semibold text-muted">
+          <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-accent" />
             Open
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-destructive" />
             Closed
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-[8px]">Xp</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-bold">Xp</span>
             = players
           </div>
         </div>
@@ -175,11 +173,11 @@ export default function CalendarPage() {
         });
 
         return (
-          <div className="rounded-lg bg-card border border-card-border p-4">
+          <div className="rounded-[16px] bg-card border border-card-border p-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up">
             <div className="flex items-center justify-between mb-3">
-              <p className="font-semibold text-sm">{dateLabel}</p>
+              <p className="text-[15px] font-bold">{dateLabel}</p>
               <div className="flex items-center gap-2">
-                {gd && <span className="text-xs text-muted">{gd.registeredPlayers.length} players</span>}
+                {gd && <span className="text-[11px] font-semibold text-muted">{gd.registeredPlayers.length} players</span>}
                 {blocked ? (
                   <Badge variant="destructive">Closed</Badge>
                 ) : past ? (
@@ -190,11 +188,10 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            {/* Blocked reason for all users */}
             {blocked && blockMsg && (
-              <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/5 rounded-lg p-3 mb-3">
+              <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/5 rounded-[8px] p-3 mb-3">
                 <Ban className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>{blockMsg}</span>
+                <span className="font-medium">{blockMsg}</span>
               </div>
             )}
 
@@ -208,7 +205,7 @@ export default function CalendarPage() {
             {isAdmin && gd && gd.registeredPlayers.length > 0 && (past || todayDay) && (
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-muted">Players</p>
+                  <span className="text-[11px] font-bold tracking-[2px] uppercase text-muted">Players</span>
                   {gd.noShows.length > 0 && (
                     <Badge variant="destructive" className="text-[8px]">
                       {gd.noShows.length} no-show{gd.noShows.length > 1 ? "s" : ""}
@@ -222,21 +219,21 @@ export default function CalendarPage() {
                       <div
                         key={p.userId}
                         className={cn(
-                          "flex items-center justify-between rounded-md px-2 py-1.5 text-xs",
+                          "flex items-center justify-between rounded-[8px] px-2.5 py-2 text-xs",
                           isNoShow ? "bg-destructive/5" : "bg-background"
                         )}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted w-4">{idx + 1}</span>
-                          <span className={isNoShow ? "line-through text-muted" : ""}>{p.fullName}</span>
+                          <span className="text-[10px] text-text-muted font-bold w-4">{idx + 1}</span>
+                          <span className={cn("font-semibold", isNoShow && "line-through text-muted")}>{p.fullName}</span>
                         </div>
                         {isAdmin && past && (
                           <button
                             onClick={() => toggleNoShow(dateStr, p.userId)}
                             className={cn(
-                              "flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors",
+                              "flex items-center gap-1 rounded-[100px] px-2 py-0.5 text-[10px] font-bold transition-colors",
                               isNoShow
-                                ? "bg-success/10 text-success hover:bg-success/20"
+                                ? "bg-accent-soft text-accent-hover hover:bg-accent/20"
                                 : "bg-destructive/10 text-destructive hover:bg-destructive/20"
                             )}
                           >
@@ -268,7 +265,7 @@ export default function CalendarPage() {
                 ) : (
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="block-reason" className="text-xs">Reason for closing</Label>
+                      <Label htmlFor="block-reason" className="text-[11px] font-bold">Reason for closing</Label>
                       <Input
                         id="block-reason"
                         value={blockReason}

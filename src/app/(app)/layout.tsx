@@ -20,7 +20,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AppProvider>
       <Header />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 pb-20 sm:pb-6">
+      <main className="mx-auto w-full max-w-[480px] flex-1 px-5 pt-2 pb-28 sm:pb-6">
         {children}
       </main>
       <MobileNav />

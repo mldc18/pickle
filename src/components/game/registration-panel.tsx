@@ -2,132 +2,88 @@
 
 import { useAuth } from "@/context/auth-context";
 import { useApp } from "@/context/app-context";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PlayerList } from "./player-list";
-import { formatDayName, formatShortDate } from "@/lib/utils";
+import { formatFullDate } from "@/lib/utils";
 import { MAX_SLOTS } from "@/lib/constants";
-import { CalendarDays, CheckCircle, XCircle, Ban, CreditCard, UserMinus, Users } from "lucide-react";
+import { Ban, CreditCard } from "lucide-react";
 
 export function RegistrationPanel() {
   const { user } = useAuth();
-  const {
-    gameDay,
-    registerForGame,
-    unregisterFromGame,
-    isRegistered,
-    isWaitlisted,
-    getWaitlistPosition,
-    getRegistrationStatus,
-  } = useApp();
+  const { gameDay, getRegistrationStatus } = useApp();
 
   if (!user) return null;
 
   const status = getRegistrationStatus();
-  const registered = isRegistered(user.id);
-  const waitlisted = isWaitlisted(user.id);
-  const waitPos = getWaitlistPosition(user.id);
   const filled = gameDay.registeredPlayers.length;
-
-  function handleToggle() {
-    if (registered || waitlisted) {
-      unregisterFromGame(user!.id);
-    } else {
-      registerForGame(user!.id, user!.fullName);
-    }
-  }
-
-  const canRegister = status === "open" && user.isPaid;
+  const fillPercent = Math.round((filled / MAX_SLOTS) * 100);
   const isBlocked = status === "blocked";
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Date, Status & Slots - Header Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                <CalendarDays className="h-5 w-5" />
-              </div>
-              <div>
-                <CardTitle>{formatDayName(gameDay.date)}</CardTitle>
-                <CardDescription className="text-sm">{formatShortDate(gameDay.date)}</CardDescription>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-1.5">
-              <div className="flex items-center gap-1.5 text-sm font-semibold">
-                <Users className="h-3.5 w-3.5 text-muted" />
-                <span>{filled}<span className="text-muted font-normal">/{MAX_SLOTS}</span></span>
-              </div>
-              {status === "not_open" && (
-                <span className="text-[10px] text-muted">Opens 12 PM</span>
-              )}
-              {status === "open" && (
-                <Badge variant="success" className="text-[10px]">Open</Badge>
-              )}
-              {status === "closed" && (
-                <Badge variant="default" className="text-[10px]">Closed</Badge>
-              )}
-              {status === "blocked" && (
-                <Badge variant="destructive" className="text-[10px]">Blocked</Badge>
-              )}
-            </div>
+      {/* Session Info Card */}
+      <div className="relative bg-card border border-card-border rounded-2xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] overflow-hidden animate-fade-up">
+        <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: "linear-gradient(90deg, var(--accent), var(--warning))" }} />
+        <div className="text-[21px] font-extrabold tracking-[-0.3px] mb-2.5">
+          {formatFullDate(gameDay.date)}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="bg-accent-soft border border-accent/20 px-3.5 py-1 rounded-lg text-[15px] font-bold text-accent-hover">
+            7:30 PM
+          </span>
+          <span className="text-text-muted">—</span>
+          <span className="bg-accent-soft border border-accent/20 px-3.5 py-1 rounded-lg text-[15px] font-bold text-accent-hover">
+            10:00 PM
+          </span>
+        </div>
+      </div>
+
+      {/* Progress Block */}
+      <div className="animate-fade-up" style={{ animationDelay: "0.1s" }}>
+        <div className="flex justify-between items-baseline mb-1.5">
+          <span className="text-[11px] font-bold tracking-[2px] uppercase text-muted">Players</span>
+          <div className="text-[22px] font-extrabold">
+            <span className="text-accent-hover">{filled}</span>
+            <span className="text-text-muted mx-0.5">/</span>
+            <span className="text-text-muted">{MAX_SLOTS}</span>
           </div>
-        </CardHeader>
-      </Card>
+        </div>
+        <div className="w-full h-[5px] bg-card-border rounded-md overflow-hidden">
+          <div
+            className="h-full rounded-md animate-grow"
+            style={{
+              background: "linear-gradient(90deg, var(--accent), var(--accent-hover))",
+              "--fill-width": `${fillPercent}%`,
+            } as React.CSSProperties}
+          />
+        </div>
+      </div>
 
       {/* Blocked Message */}
       {isBlocked && gameDay.blockMessage && (
-        <div className="flex items-start gap-3 rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+        <div className="flex items-start gap-3 rounded-xl bg-destructive/5 border border-destructive/20 p-3">
           <Ban className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium text-destructive">Game Cancelled</p>
+            <p className="font-semibold text-destructive text-sm">Not Available</p>
             <p className="text-sm text-muted mt-1">{gameDay.blockMessage}</p>
           </div>
         </div>
       )}
 
-      {/* Status Messages & Action */}
-      <div className="flex flex-col gap-3">
-        {!user.isPaid && (
-          <div className="flex items-start gap-2 text-sm text-warning bg-warning/10 rounded-lg p-3">
-            <CreditCard className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>Send payment and wait for admin to approve you so you can register for games.</span>
-          </div>
-        )}
-        {status === "closed" && (
-          <div className="flex items-start gap-2 text-sm text-muted bg-card-border/30 rounded-lg p-3">
-            <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>Registration is closed for today.</span>
-          </div>
-        )}
+      {/* Unpaid Warning */}
+      {!user.isPaid && (
+        <div className="flex items-start gap-2 text-[11px] leading-snug text-warning-dark bg-warning-soft rounded-[10px] px-3 py-2 border border-warning/20">
+          <CreditCard className="h-3 w-3 shrink-0 mt-0.5" />
+          <span>Payment required — awaiting admin approval.</span>
+        </div>
+      )}
 
-        {registered ? (
-          <Button variant="destructive" size="lg" className="w-full" onClick={handleToggle}>
-            <UserMinus className="h-4 w-4" />
-            Cancel Registration
-          </Button>
-        ) : waitlisted ? (
-          <Button variant="destructive" size="lg" className="w-full" onClick={handleToggle}>
-            <UserMinus className="h-4 w-4" />
-            Leave Waitlist (#{waitPos})
-          </Button>
-        ) : (
-          <Button size="lg" className="w-full" disabled={!canRegister} onClick={handleToggle}>
-            <CheckCircle className="h-4 w-4" />
-            Register for Today&#39;s Game
-          </Button>
-        )}
-      </div>
-
-      {/* Player List - no card wrapper */}
+      {/* Player Grid */}
       <PlayerList
         players={gameDay.registeredPlayers}
         waitlist={gameDay.waitlist}
         currentUserId={user.id}
       />
+
     </div>
   );
 }

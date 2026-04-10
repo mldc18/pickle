@@ -1,18 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #111827;
-  --card: #f9fafb;
-  --card-border: #e5e7eb;
-  --accent: #0891b2;
-  --accent-hover: #0e7490;
-  --success: #16a34a;
+  --background: #F6F6F4;
+  --foreground: #171717;
+  --card: #FFFFFF;
+  --card-border: #E5E5E0;
+  --accent: #34D399;
+  --accent-hover: #059669;
+  --accent-soft: #ECFDF5;
+  --success: #34D399;
   --destructive: #dc2626;
-  --warning: #d97706;
-  --muted: #6b7280;
-  --input-bg: #f3f4f6;
-  --input-border: #d1d5db;
+  --warning: #FBBF24;
+  --warning-dark: #D97706;
+  --warning-soft: #FFFBEB;
+  --muted: #737373;
+  --text-muted: #A3A3A3;
+  --input-bg: #f5f5f3;
+  --input-border: #d4d4d0;
+  --accent-gradient: linear-gradient(90deg, #34D399, #059669);
+  --hero-gradient: linear-gradient(90deg, #34D399, #FBBF24);
 }
 
 @theme inline {
@@ -22,19 +28,49 @@
   --color-card-border: var(--card-border);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
   --color-success: var(--success);
   --color-destructive: var(--destructive);
   --color-warning: var(--warning);
+  --color-warning-dark: var(--warning-dark);
+  --color-warning-soft: var(--warning-soft);
   --color-muted: var(--muted);
+  --color-text-muted: var(--text-muted);
   --color-input-bg: var(--input-bg);
   --color-input-border: var(--input-border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-jakarta);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes grow {
+  from { width: 0%; }
+  to { width: var(--fill-width); }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out both;
+}
+
+.animate-pop {
+  animation: pop 0.35s ease-out both;
+}
+
+.animate-grow {
+  animation: grow 1s ease-out 0.5s both;
 }
 
 ::-webkit-scrollbar {

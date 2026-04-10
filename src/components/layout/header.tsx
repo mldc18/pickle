@@ -1,32 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/context/auth-context";
-import { Button } from "@/components/ui/button";
-import { LogOut, Shield } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Trophy, User } from "lucide-react";
 
 export function Header() {
-  const { user, isAdmin, logout } = useAuth();
+  const pathname = usePathname();
+  const onProfile = pathname.startsWith("/profile");
+  const target = onProfile ? "/dashboard" : "/profile";
+  const Icon = onProfile ? Trophy : User;
+  const label = onProfile ? "Play" : "Profile";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-card-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
-        <Link href="/dashboard" className="text-lg font-bold text-accent tracking-wider">
+    <header className="w-full">
+      <div className="mx-auto flex h-12 max-w-[460px] items-center justify-between px-5">
+        <Link href="/dashboard" className="text-[22px] font-extrabold text-accent-hover tracking-[-0.5px]">
           LAMPA
         </Link>
-        <div className="flex items-center gap-3">
-          {isAdmin && (
-            <Link href="/admin" className="hidden sm:flex items-center gap-1 text-xs text-warning hover:underline">
-              <Shield className="h-3 w-3" />
-              Admin
-            </Link>
-          )}
-          <span className="text-xs text-muted hidden sm:block">{user?.firstName}</span>
-          <Button variant="ghost" size="sm" onClick={logout}>
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </Button>
-        </div>
+        <Link
+          href={target}
+          aria-label={label}
+          className="flex h-9 w-9 items-center justify-center rounded-[10px] text-text-muted hover:text-accent-hover hover:bg-accent-soft transition-colors"
+        >
+          <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+        </Link>
       </div>
     </header>
   );
