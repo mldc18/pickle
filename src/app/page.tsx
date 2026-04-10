@@ -8,7 +8,7 @@ export default function Home() {
       <div className="relative z-10 flex flex-col items-center animate-fade-up">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/lampa-logo.png"
+          src="/lampa-logo.jpg"
           alt="LAMPA — La Marea Pickleball Association"
           className="mb-4 h-32 w-32 rounded-full object-cover shadow-[0_8px_28px_rgba(52,211,153,0.25)]"
         />
