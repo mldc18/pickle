@@ -24,6 +24,7 @@ import {
 } from "@/lib/utils";
 
 interface AppContextType {
+  ready: boolean;
   users: User[];
   gameDay: GameDay;
   gameDays: Record<string, GameDay>;
@@ -93,6 +94,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>([]);
   const [gameDays, setGameDays] = useState<Record<string, GameDay>>({});
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
+  const [ready, setReady] = useState(false);
 
   // -------------------------------------------------------------------------
   // Fetchers
@@ -223,7 +225,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, today]);
 
   useEffect(() => {
-    fetchAll();
+    fetchAll().finally(() => setReady(true));
   }, [fetchAll]);
 
   const gameDay = gameDays[today] ?? { ...EMPTY_GAME_DAY, date: today };
@@ -394,6 +396,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider
       value={{
+        ready,
         users,
         gameDay,
         gameDays,

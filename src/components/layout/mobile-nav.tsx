@@ -8,6 +8,7 @@ export function MobileNav() {
   const pathname = usePathname();
   const { user, isAdmin } = useAuth();
   const {
+    ready,
     registerForGame,
     unregisterFromGame,
     isRegistered,
@@ -19,6 +20,19 @@ export function MobileNav() {
 
   const showCTA = pathname === "/dashboard" && !!user;
   if (!showCTA) return null;
+
+  // Wait until the first fetch resolves so we don't flash "Register Now"
+  // before flipping to "Tap to Cancel" once the user's registration state
+  // lands from Supabase.
+  if (!ready) {
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card border-t border-card-border pb-[max(8px,env(safe-area-inset-bottom))] sm:hidden">
+        <div className="px-5 py-3 max-w-[460px] mx-auto">
+          <div className="w-full h-[56px] rounded-[14px] bg-card-border/40 animate-pulse" />
+        </div>
+      </nav>
+    );
+  }
 
   const status = getRegistrationStatus();
   const registered = isRegistered(user!.id);

@@ -10,6 +10,7 @@ import { Ban, CreditCard } from "lucide-react";
 export function RegistrationPanel() {
   const { user, isAdmin } = useAuth();
   const {
+    ready,
     gameDay,
     getRegistrationStatus,
     users,
@@ -29,7 +30,7 @@ export function RegistrationPanel() {
   const currentUserRow = users.find((u) => u.id === user.id);
   const effectivePaid = isAdmin || (currentUserRow?.isPaid ?? false);
   const alreadyInGame = isRegistered(user.id) || isWaitlisted(user.id);
-  const canRegister = status === "open" && effectivePaid && !alreadyInGame;
+  const canRegister = ready && status === "open" && effectivePaid && !alreadyInGame;
   const handleRegisterClick = canRegister
     ? () => { registerForGame(user.id, user.fullName); }
     : undefined;
