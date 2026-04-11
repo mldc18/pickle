@@ -9,17 +9,7 @@ import { Ban, CreditCard } from "lucide-react";
 
 export function RegistrationPanel() {
   const { user, isAdmin } = useAuth();
-  const {
-    ready,
-    gameDay,
-    getRegistrationStatus,
-    users,
-    registerForGame,
-    unregisterFromGame,
-    isRegistered,
-    isWaitlisted,
-    getWaitlistPosition,
-  } = useApp();
+  const { gameDay, getRegistrationStatus, users } = useApp();
 
   if (!user) return null;
 
@@ -32,27 +22,6 @@ export function RegistrationPanel() {
   // from monthly_payments). Admins and super_admins bypass the paid check.
   const currentUserRow = users.find((u) => u.id === user.id);
   const effectivePaid = isAdmin || (currentUserRow?.isPaid ?? false);
-
-  const registered = isRegistered(user.id);
-  const waitlisted = isWaitlisted(user.id);
-  const waitPos = getWaitlistPosition(user.id);
-
-  const canRegister =
-    ready &&
-    !registered &&
-    !waitlisted &&
-    !isBlocked &&
-    effectivePaid &&
-    status === "open";
-
-  function handleToggle() {
-    if (!user) return;
-    if (registered || waitlisted) {
-      unregisterFromGame(user.id);
-    } else {
-      registerForGame(user.id, user.fullName);
-    }
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -119,115 +88,6 @@ export function RegistrationPanel() {
         waitlist={gameDay.waitlist}
         currentUserId={user.id}
       />
-
-      {/* Action Button (formerly in MobileNav) */}
-      <div className="pt-2 animate-fade-up" style={{ animationDelay: "0.3s" }}>
-        <ActionButton
-          ready={ready}
-          registered={registered}
-          waitlisted={waitlisted}
-          waitPos={waitPos}
-          effectivePaid={effectivePaid}
-          isBlocked={isBlocked}
-          canRegister={canRegister}
-          onToggle={handleToggle}
-        />
-      </div>
     </div>
-  );
-}
-
-function ActionButton({
-  ready,
-  registered,
-  waitlisted,
-  waitPos,
-  effectivePaid,
-  isBlocked,
-  canRegister,
-  onToggle,
-}: {
-  ready: boolean;
-  registered: boolean;
-  waitlisted: boolean;
-  waitPos: number;
-  effectivePaid: boolean;
-  isBlocked: boolean;
-  canRegister: boolean;
-  onToggle: () => void;
-}) {
-  if (!ready) {
-    return (
-      <div className="w-full h-[56px] rounded-[14px] bg-card-border/40 animate-pulse" />
-    );
-  }
-
-  if (registered) {
-    return (
-      <button
-        onClick={onToggle}
-        className="w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex items-center justify-center gap-2 transition-all cursor-pointer border-0"
-        style={{
-          background: "#FBBF24",
-          color: "#111",
-          boxShadow: "0 4px 20px rgba(251,191,36,0.3)",
-        }}
-      >
-        ✓ You&apos;re In! — Tap to Cancel
-      </button>
-    );
-  }
-
-  if (waitlisted) {
-    return (
-      <button
-        onClick={onToggle}
-        className="w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex items-center justify-center gap-2 transition-all cursor-pointer border-0"
-        style={{
-          background: "#FBBF24",
-          color: "#111",
-          boxShadow: "0 4px 20px rgba(251,191,36,0.3)",
-        }}
-      >
-        Waitlisted #{waitPos} — Tap to Leave
-      </button>
-    );
-  }
-
-  if (isBlocked) {
-    return (
-      <button
-        disabled
-        className="w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex items-center justify-center gap-2 opacity-50 cursor-not-allowed border-0 bg-card-border text-muted"
-      >
-        Registration Closed
-      </button>
-    );
-  }
-
-  if (!effectivePaid) {
-    return (
-      <button
-        disabled
-        className="w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex items-center justify-center gap-2 opacity-50 cursor-not-allowed border-0 bg-card-border text-muted"
-      >
-        Wait for Admin Approval
-      </button>
-    );
-  }
-
-  return (
-    <button
-      onClick={canRegister ? onToggle : undefined}
-      disabled={!canRegister}
-      className="w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 hover:-translate-y-px active:translate-y-0"
-      style={{
-        background: "var(--accent)",
-        color: "#111",
-        boxShadow: "0 4px 20px rgba(52,211,153,0.25)",
-      }}
-    >
-      Register Now →
-    </button>
   );
 }

@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { AppProvider } from "@/context/app-context";
 import { Header } from "@/components/layout/header";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
@@ -90,13 +91,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <AppProvider>
       <Header />
-      <div className="mx-auto flex w-full max-w-4xl flex-1 gap-6 px-5 py-6">
+      <div className="mx-auto flex w-full max-w-4xl flex-1 gap-6 px-5 py-6 pb-24">
         <AdminSidebar />
         <main className="flex-1 min-w-0">
           <AdminMobileTabs />
           {children}
         </main>
       </div>
+      <MobileNav />
     </AppProvider>
   );
 }

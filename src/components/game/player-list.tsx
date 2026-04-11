@@ -61,18 +61,6 @@ function PlayerRow({
       )}
       style={{ animationDelay: `${0.25 + index * 0.02}s` }}
     >
-      <span
-        className={cn(
-          "text-[11px] font-bold w-5 text-center tabular-nums",
-          isCurrentUser
-            ? dimmed
-              ? "text-warning-dark"
-              : "text-accent-hover"
-            : "text-text-muted",
-        )}
-      >
-        {index + 1}
-      </span>
       <div
         className={cn(
           "h-11 w-11 rounded-[12px] overflow-hidden flex items-center justify-center text-[13px] font-extrabold text-white shadow-sm shrink-0",

@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pickle-dev",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["-c", "export PATH=$HOME/.nvm/versions/node/v22.18.0/bin:/usr/local/bin:$PATH && pnpm dev"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}
