@@ -42,36 +42,45 @@ export function MobileNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card border-t border-card-border pb-[max(8px,env(safe-area-inset-bottom))]">
       <div className="mx-auto flex max-w-[460px] flex-col gap-2 px-5 pt-3">
         {showAction && (
-          <RegistrationAction
-            ready={ready}
-            userId={user.id}
-            userFullName={user.fullName}
-            isAdmin={isAdmin}
-            users={users}
-            registerForGame={registerForGame}
-            unregisterFromGame={unregisterFromGame}
-            isRegistered={isRegistered}
-            isWaitlisted={isWaitlisted}
-            getWaitlistPosition={getWaitlistPosition}
-            getRegistrationStatus={getRegistrationStatus}
-          />
+          <>
+            <RegistrationAction
+              ready={ready}
+              userId={user.id}
+              userFullName={user.fullName}
+              isAdmin={isAdmin}
+              users={users}
+              registerForGame={registerForGame}
+              unregisterFromGame={unregisterFromGame}
+              isRegistered={isRegistered}
+              isWaitlisted={isWaitlisted}
+              getWaitlistPosition={getWaitlistPosition}
+              getRegistrationStatus={getRegistrationStatus}
+            />
+            <div className="h-px bg-card-border mx-1" />
+          </>
         )}
 
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-stretch justify-center gap-2">
           <Link
             href={toggleTarget}
             aria-label={toggleLabel}
-            className="flex h-10 w-10 items-center justify-center rounded-[10px] text-text-muted hover:text-accent-hover hover:bg-accent-soft transition-colors"
+            className="flex flex-1 min-w-[92px] flex-col items-center justify-center gap-1 py-2 rounded-[12px] text-text-muted hover:text-accent-hover hover:bg-accent-soft transition-colors"
           >
             <ToggleIcon className="h-5 w-5" strokeWidth={2} />
+            <span className="text-[12px] font-bold tracking-[0.2px]">
+              {toggleLabel}
+            </span>
           </Link>
           {isAdmin && !onAdmin && (
             <Link
               href="/admin"
               aria-label="Admin"
-              className="flex h-10 w-10 items-center justify-center rounded-[10px] text-text-muted hover:text-accent-hover hover:bg-accent-soft transition-colors"
+              className="flex flex-1 min-w-[92px] flex-col items-center justify-center gap-1 py-2 rounded-[12px] text-text-muted hover:text-accent-hover hover:bg-accent-soft transition-colors"
             >
               <Shield className="h-5 w-5" strokeWidth={2} />
+              <span className="text-[12px] font-bold tracking-[0.2px]">
+                Admin
+              </span>
             </Link>
           )}
         </div>
