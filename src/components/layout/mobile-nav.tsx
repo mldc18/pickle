@@ -2,17 +2,36 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Shield, Trophy, User } from "lucide-react";
+import {
+  CalendarDays,
+  LayoutDashboard,
+  Trophy,
+  User,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import { cn } from "@/lib/cn";
 import { useAuth } from "@/context/auth-context";
 import { useApp } from "@/context/app-context";
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  /** Exact pathname match for the active state, instead of startsWith. */
+  exact?: boolean;
+};
 
 /**
  * Sticky bottom bar.
  *
- * Always shows the nav icon row (Play/Profile toggle + Admin shield for
- * admins). On /dashboard it also shows the Register/Cancel/Waitlist
- * action button above the nav row so the CTA is always visible to the
- * user without scrolling to the bottom of the player list.
+ * Admins always see five buttons — Play, Profile, Admin (Overview),
+ * Users, Calendar — so there's no nested sidebar or secondary tab
+ * row anywhere in the app. Members see the two-button Play/Profile
+ * pair.
+ *
+ * On /dashboard the Register/Cancel/Waitlist CTA is rendered above
+ * the nav row so it's always visible.
  */
 export function MobileNav() {
   const pathname = usePathname();
@@ -30,11 +49,18 @@ export function MobileNav() {
 
   if (!user) return null;
 
-  const onProfile = pathname.startsWith("/profile");
-  const onAdmin = pathname.startsWith("/admin");
-  const toggleTarget = onProfile || onAdmin ? "/dashboard" : "/profile";
-  const ToggleIcon = onProfile || onAdmin ? Trophy : User;
-  const toggleLabel = onProfile || onAdmin ? "Play" : "Profile";
+  const navItems: NavItem[] = isAdmin
+    ? [
+        { href: "/dashboard", label: "Play", icon: Trophy, exact: true },
+        { href: "/profile", label: "Profile", icon: User },
+        { href: "/admin", label: "Admin", icon: LayoutDashboard, exact: true },
+        { href: "/admin/users", label: "Users", icon: Users },
+        { href: "/calendar", label: "Calendar", icon: CalendarDays },
+      ]
+    : [
+        { href: "/dashboard", label: "Play", icon: Trophy, exact: true },
+        { href: "/profile", label: "Profile", icon: User },
+      ];
 
   const showAction = pathname === "/dashboard";
 
@@ -60,29 +86,32 @@ export function MobileNav() {
           </>
         )}
 
-        <div className="flex items-stretch justify-center gap-2">
-          <Link
-            href={toggleTarget}
-            aria-label={toggleLabel}
-            className="flex flex-1 min-w-[92px] flex-col items-center justify-center gap-1 py-2 rounded-[12px] text-text-muted hover:text-accent-hover hover:bg-accent-soft transition-colors"
-          >
-            <ToggleIcon className="h-5 w-5" strokeWidth={2} />
-            <span className="text-[12px] font-bold tracking-[0.2px]">
-              {toggleLabel}
-            </span>
-          </Link>
-          {isAdmin && !onAdmin && (
-            <Link
-              href="/admin"
-              aria-label="Admin"
-              className="flex flex-1 min-w-[92px] flex-col items-center justify-center gap-1 py-2 rounded-[12px] text-text-muted hover:text-accent-hover hover:bg-accent-soft transition-colors"
-            >
-              <Shield className="h-5 w-5" strokeWidth={2} />
-              <span className="text-[12px] font-bold tracking-[0.2px]">
-                Admin
-              </span>
-            </Link>
-          )}
+        <div className="flex items-stretch justify-center gap-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = item.exact
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={item.label}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 rounded-[12px] transition-colors",
+                  active
+                    ? "text-accent-hover bg-accent-soft"
+                    : "text-text-muted hover:text-accent-hover hover:bg-accent-soft",
+                )}
+              >
+                <Icon className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span className="text-[11px] font-bold tracking-[0.2px] truncate w-full text-center">
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </nav>
