@@ -9,13 +9,14 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { LayoutDashboard, Users } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays } from "lucide-react";
 
 function AdminSidebar() {
   const pathname = usePathname();
   const links = [
     { href: "/admin", label: "Overview" },
     { href: "/admin/users", label: "Users & Payments" },
+    { href: "/calendar", label: "Calendar" },
   ];
 
   return (
@@ -50,6 +51,7 @@ function AdminMobileTabs() {
   const tabs = [
     { href: "/admin", label: "Overview", icon: LayoutDashboard },
     { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/calendar", label: "Calendar", icon: CalendarDays },
   ];
 
   return (
