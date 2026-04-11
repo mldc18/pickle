@@ -44,7 +44,10 @@ export const userSchema = z.object({
   mobile: z.string().min(1),
   address: z.string().min(1),
   role: userRoleSchema,
+  /** Security selfie captured at registration. Immutable from the client. */
   avatarUrl: z.string().min(1),
+  /** User-editable display photo shown on player list + profile. */
+  photoUrl: z.string().nullable(),
   isPaid: z.boolean(),
   paymentHistory: z.array(monthlyPaymentSchema),
   noShowCount: z.number().int().nonnegative(),
@@ -55,7 +58,8 @@ export const userSchema = z.object({
 export const registeredPlayerSchema = z.object({
   userId: z.string().min(1),
   fullName: z.string().min(1),
-  avatarUrl: z.string().min(1),
+  /** Display photo if set, otherwise the security selfie. */
+  avatarUrl: z.string(),
   registeredAt: isoTimestampSchema,
 });
 

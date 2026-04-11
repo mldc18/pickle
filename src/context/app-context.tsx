@@ -36,6 +36,8 @@ interface AppContextType {
   incrementNoShow: (userId: string) => Promise<void>;
   toggleAdmin: (userId: string) => Promise<void>;
   toggleSuperAdmin: (userId: string) => Promise<void>;
+  /** Uploads a new display photo for the current user and returns its public URL. */
+  updateOwnPhoto: (file: Blob) => Promise<string | null>;
   getGameDay: (date: string) => GameDay | undefined;
 }
 
@@ -56,6 +58,7 @@ type UserRow = {
   address: string;
   role: "member" | "admin" | "super_admin";
   avatar_url: string;
+  photo_url: string | null;
   accepted_terms: boolean;
   created_at: string;
 };
@@ -141,6 +144,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         address: u.address,
         role: u.role,
         avatarUrl: u.avatar_url,
+        photoUrl: u.photo_url,
         isPaid: userPayments.get(currentMonth) ?? false,
         paymentHistory,
         noShowCount: noShowCounts.get(u.id) ?? 0,
@@ -151,8 +155,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUsers(enrichedUsers);
 
     // --- Game days -------------------------------------------------------
+    // For the player list we prefer the user-editable display photo
+    // (photo_url) and fall back to the immutable registration selfie
+    // (avatar_url) when the user hasn't uploaded one yet.
     const userInfoById = new Map(
-      userRows.map((u) => [u.id, { fullName: u.full_name, avatarUrl: u.avatar_url }]),
+      userRows.map((u) => [
+        u.id,
+        { fullName: u.full_name, avatarUrl: u.photo_url ?? u.avatar_url },
+      ]),
     );
     const regsByDate = new Map<string, RegistrationRow[]>();
     for (const r of regRows) {
@@ -381,6 +391,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [supabase, users, fetchAll],
   );
 
+  const updateOwnPhoto = useCallback(
+    async (file: Blob): Promise<string | null> => {
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData.user?.id;
+      if (!uid) return null;
+
+      // Path layout: photos/{uid}/display-{timestamp}.{ext}
+      // New filename per upload so we don't need to bust a CDN cache,
+      // and the old object stays until the user (or a sweeper) removes it.
+      const mime = file.type || "image/jpeg";
+      const ext =
+        mime === "image/png" ? "png"
+          : mime === "image/webp" ? "webp"
+          : mime === "image/heic" || mime === "image/heif" ? "heic"
+          : "jpg";
+      const path = `${uid}/display-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("photos")
+        .upload(path, file, { contentType: mime, upsert: false });
+      if (uploadError) {
+        console.error("updateOwnPhoto upload failed", uploadError);
+        return null;
+      }
+
+      const { data: publicData } = supabase.storage
+        .from("photos")
+        .getPublicUrl(path);
+      const publicUrl = publicData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ photo_url: publicUrl })
+        .eq("id", uid);
+      if (updateError) {
+        console.error("updateOwnPhoto row update failed", updateError);
+        return null;
+      }
+
+      await fetchAll();
+      return publicUrl;
+    },
+    [supabase, fetchAll],
+  );
+
   const toggleSuperAdmin = useCallback(
     async (userId: string) => {
       const current = users.find((u) => u.id === userId);
@@ -424,6 +479,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         incrementNoShow,
         toggleAdmin,
         toggleSuperAdmin,
+        updateOwnPhoto,
         getGameDay,
       }}
     >

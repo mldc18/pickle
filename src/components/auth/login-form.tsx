@@ -9,12 +9,12 @@ import Link from "next/link";
 import { z } from "zod";
 
 const loginFormSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
+  username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
 });
 
 export function LoginForm() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -24,18 +24,18 @@ export function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const parsed = loginFormSchema.safeParse({ email, password });
+    const parsed = loginFormSchema.safeParse({ username, password });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Please fill in all fields");
       return;
     }
     setSubmitting(true);
-    const success = await login(parsed.data.email, parsed.data.password);
+    const success = await login(parsed.data.username, parsed.data.password);
     setSubmitting(false);
     if (success) {
       router.push("/dashboard");
     } else {
-      setError("Invalid email or password");
+      setError("Invalid username or password");
     }
   }
 
@@ -64,8 +64,17 @@ export function LoginForm() {
         )}
 
         <div className="mb-[18px]">
-          <label className="block text-[13px] font-bold text-foreground mb-1.5">Email</label>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" autoComplete="email" />
+          <label className="block text-[13px] font-bold text-foreground mb-1.5">Username</label>
+          <Input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="your username"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
         </div>
 
         <div className="mb-[18px]">

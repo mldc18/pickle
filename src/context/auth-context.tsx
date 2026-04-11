@@ -12,7 +12,7 @@ import { User, AuthState, RegistrationFormData } from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/client";
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (usernameOrEmail: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   register: (data: RegistrationFormData) => Promise<{ ok: true } | { ok: false; error: string }>;
 }
@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         address: data.address,
         role: data.role,
         avatarUrl: data.avatar_url,
+        photoUrl: data.photo_url ?? null,
         // isPaid / paymentHistory / noShowCount are derived — populated later
         // once app-context is wired to Supabase. For now, defaults.
         isPaid: false,
@@ -79,8 +80,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, loadProfile]);
 
   const login = useCallback(
-    async (email: string, password: string): Promise<boolean> => {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    async (usernameOrEmail: string, password: string): Promise<boolean> => {
+      const trimmed = usernameOrEmail.trim();
+      // If the input already looks like an email (has @), sign in directly.
+      // Otherwise treat it as a username and resolve to the account's email
+      // via a lookup against public.users. users.email is readable under
+      // users_select_authenticated — for the anonymous login case we call a
+      // security-definer RPC instead.
+      let email = trimmed;
+      if (!trimmed.includes("@")) {
+        const { data: lookup, error: lookupError } = await supabase.rpc(
+          "email_for_username",
+          { p_username: trimmed },
+        );
+        if (lookupError || !lookup) return false;
+        email = lookup as string;
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error || !data.user) return false;
       await loadProfile(data.user.id);
       return true;

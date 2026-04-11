@@ -1,12 +1,16 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useApp } from "@/context/app-context";
-import { User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut } from "lucide-react";
+import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, isAdmin, logout } = useAuth();
-  const { users } = useApp();
+  const { users, updateOwnPhoto } = useApp();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   if (!user) return null;
 
@@ -15,6 +19,27 @@ export default function ProfilePage() {
   const liveRow = users.find((u) => u.id === user.id);
   const isActive = isAdmin || (liveRow?.isPaid ?? false);
   const paymentHistory = liveRow?.paymentHistory ?? user.paymentHistory;
+
+  // Prefer the user-editable display photo; fall back to the security selfie.
+  const displayPhoto = liveRow?.photoUrl ?? user.photoUrl ?? user.avatarUrl;
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Photo must be 5 MB or smaller.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await updateOwnPhoto(file);
+      if (!url) setUploadError("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   const fields = [
     { label: "Full Name", value: user.fullName, icon: User },
@@ -41,19 +66,66 @@ export default function ProfilePage() {
       <div className="relative bg-card border border-card-border rounded-[16px] p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] overflow-hidden animate-fade-up">
         <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: "linear-gradient(90deg, var(--accent), var(--warning))" }} />
         <div className="flex items-center gap-4">
-          <div className="flex h-[60px] w-[60px] items-center justify-center rounded-[16px] bg-accent-soft border-2 border-accent text-accent-hover text-xl font-extrabold overflow-hidden">
-            {user.avatarUrl ? (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="relative group flex h-[72px] w-[72px] items-center justify-center rounded-[16px] bg-accent-soft border-2 border-accent text-accent-hover text-xl font-extrabold overflow-hidden shrink-0 disabled:opacity-60"
+            aria-label="Change profile photo"
+          >
+            {displayPhoto ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt={user.fullName} className="w-full h-full object-cover" />
+              <img
+                src={displayPhoto}
+                alt={user.fullName}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <>{user.firstName[0]}{user.lastName[0]}</>
             )}
-          </div>
-          <div className="flex-1">
-            <p className="text-[17px] font-extrabold tracking-[-0.3px]">{user.fullName}</p>
+            <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
+              <Camera className="h-6 w-6" strokeWidth={2} />
+            </span>
+            {uploading && (
+              <span className="absolute inset-0 flex items-center justify-center bg-black/60 text-white text-[11px] font-bold">
+                Uploading…
+              </span>
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-[17px] font-extrabold tracking-[-0.3px] truncate">{user.fullName}</p>
             <p className="text-[12px] text-text-muted font-medium">@{user.username}</p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-[10px] bg-accent-soft text-accent-hover text-[11px] font-bold px-2.5 py-1 border border-accent/20 hover:bg-accent/15 transition-colors disabled:opacity-60"
+            >
+              <Camera className="h-3.5 w-3.5" />
+              {uploading
+                ? "Uploading…"
+                : displayPhoto
+                  ? "Change photo"
+                  : "Add photo"}
+            </button>
           </div>
         </div>
+        {uploadError && (
+          <p className="mt-3 text-[12px] font-semibold text-destructive">
+            {uploadError}
+          </p>
+        )}
+        <p className="mt-3 text-[11px] leading-snug text-text-muted">
+          This is the photo shown next to your name on the player list.
+          Your registration selfie is kept separately for security.
+        </p>
       </div>
 
       {/* Details */}
