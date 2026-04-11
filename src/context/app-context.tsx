@@ -41,6 +41,7 @@ interface AppContextType {
   toggleNoShow: (date: string, userId: string) => Promise<void>;
   incrementNoShow: (userId: string) => Promise<void>;
   toggleAdmin: (userId: string) => Promise<void>;
+  toggleSuperAdmin: (userId: string) => Promise<void>;
   getGameDay: (date: string) => GameDay | undefined;
 }
 
@@ -376,7 +377,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (userId: string) => {
       const current = users.find((u) => u.id === userId);
       if (!current) return;
-      // Super-admin transitions are managed manually in the DB.
+      // Super-admin transitions are handled by toggleSuperAdmin.
       if (current.role === "super_admin") return;
       const nextRole = current.role === "admin" ? "member" : "admin";
       const { error } = await supabase
@@ -384,6 +385,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .update({ role: nextRole })
         .eq("id", userId);
       if (error) console.error("toggleAdmin failed", error);
+      await fetchAll();
+    },
+    [supabase, users, fetchAll],
+  );
+
+  const toggleSuperAdmin = useCallback(
+    async (userId: string) => {
+      const current = users.find((u) => u.id === userId);
+      if (!current) return;
+      // Promote any non-super_admin straight to super_admin; demote an
+      // existing super_admin back to regular admin (never to member, so
+      // access isn't silently stripped without an explicit second step).
+      const nextRole = current.role === "super_admin" ? "admin" : "super_admin";
+      const { error } = await supabase
+        .from("users")
+        .update({ role: nextRole })
+        .eq("id", userId);
+      if (error) console.error("toggleSuperAdmin failed", error);
       await fetchAll();
     },
     [supabase, users, fetchAll],
@@ -413,6 +432,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleNoShow,
         incrementNoShow,
         toggleAdmin,
+        toggleSuperAdmin,
         getGameDay,
       }}
     >

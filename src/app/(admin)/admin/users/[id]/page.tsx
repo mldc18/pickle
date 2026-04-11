@@ -5,7 +5,7 @@ import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, AlertTriangle, Plus } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, Plus } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminUserDetailPage({
@@ -14,8 +14,8 @@ export default function AdminUserDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { users, incrementNoShow, toggleAdmin } = useApp();
-  const { isSuperAdmin } = useAuth();
+  const { users, incrementNoShow, toggleAdmin, toggleSuperAdmin } = useApp();
+  const { user: currentUser, isSuperAdmin } = useAuth();
   const user = users.find((u) => u.id === id);
 
   if (!user) {
@@ -123,6 +123,39 @@ export default function AdminUserDetailPage({
           )}
         </div>
       </div>
+
+      {/* Super Admin Role — only visible to super admins, and only on
+          other users (you cannot demote yourself and lock yourself out). */}
+      {isSuperAdmin && currentUser?.id !== user.id && (
+        <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.12s" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-[13px] shadow-[0_2px_8px_rgba(0,0,0,0.08)] ${isUserSuperAdmin ? "bg-warning-soft text-warning-dark" : "bg-card-border/30 text-muted"}`}>
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold">Super Admin Access</p>
+                <p className="text-[11px] text-text-muted font-medium">
+                  {isUserSuperAdmin
+                    ? "Can promote and demote other admins"
+                    : "Grants full admin promotion rights"}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant={isUserSuperAdmin ? "destructive" : "default"}
+              size="sm"
+              onClick={() => toggleSuperAdmin(user.id)}
+            >
+              {isUserSuperAdmin ? (
+                <><ShieldOff className="h-4 w-4" /> Demote to Admin</>
+              ) : (
+                <><ShieldCheck className="h-4 w-4" /> Make Super Admin</>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* No-Shows */}
       <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.15s" }}>
