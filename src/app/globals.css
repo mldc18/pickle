@@ -44,6 +44,13 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Kill pinch-zoom and double-tap-zoom on iOS Safari, which ignores
+     the `user-scalable=no` viewport hint. Seniors may accidentally
+     zoom the UI and not know how to undo it. */
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 @keyframes fade-up {
