@@ -10,14 +10,8 @@ import {
 } from "react";
 import { User, GameDay, BlockedDate } from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/client";
+import { MAX_SLOTS } from "@/lib/constants";
 import {
-  MAX_SLOTS,
-  REGISTRATION_OPEN_HOUR,
-  REGISTRATION_OPEN_MINUTE,
-  REGISTRATION_CLOSE_HOUR,
-} from "@/lib/constants";
-import {
-  getCurrentTime,
   getTodayDate,
   getMonthKey,
   getLast12Months,
@@ -34,7 +28,7 @@ interface AppContextType {
   isRegistered: (userId: string) => boolean;
   isWaitlisted: (userId: string) => boolean;
   getWaitlistPosition: (userId: string) => number;
-  getRegistrationStatus: () => "not_open" | "open" | "closed" | "blocked";
+  getRegistrationStatus: () => "open" | "blocked";
   togglePayment: (userId: string, month: string) => Promise<void>;
   blockDate: (date: string, message: string) => Promise<void>;
   unblockDate: (date: string) => Promise<void>;
@@ -235,15 +229,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Queries
   // -------------------------------------------------------------------------
 
-  const getRegistrationStatus = useCallback((): "not_open" | "open" | "closed" | "blocked" => {
+  const getRegistrationStatus = useCallback((): "open" | "blocked" => {
+    // Registration is open all day on the game day. The 7:30–10:00 PM
+    // window is only the game schedule, not a registration window —
+    // players can sign up at any hour as long as the date isn't blocked.
     if (gameDay.isBlocked || blockedDates.some((b) => b.date === today)) {
       return "blocked";
     }
-    const now = getCurrentTime();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-    if (hour < REGISTRATION_OPEN_HOUR || (hour === REGISTRATION_OPEN_HOUR && minute < REGISTRATION_OPEN_MINUTE)) return "not_open";
-    if (hour >= REGISTRATION_CLOSE_HOUR) return "closed";
     return "open";
   }, [gameDay.isBlocked, blockedDates, today]);
 
@@ -275,7 +267,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (_userId: string, _fullName: string) => {
       const status = getRegistrationStatus();
       if (status === "blocked") return "blocked" as const;
-      if (status !== "open") return "closed" as const;
 
       const { data, error } = await supabase.rpc("register_for_game", { p_date: today });
       if (error) {
