@@ -51,7 +51,7 @@ const RULES_TEXT = [
   },
   {
     title: "Fees",
-    text: "Registration fee: ONE HUNDRED PESOS (P100.00). Monthly membership fee: TWO HUNDRED PESOS (\u20B1200.00) for unlimited playing time for a month.",
+    text: "Registration fee: TWO HUNDRED PESOS (P200.00). Monthly membership fee: TWO HUNDRED PESOS (\u20B1200.00) for unlimited playing time for a month.",
   },
   {
     title: "Game Rules",
@@ -292,7 +292,7 @@ export function RegisterForm() {
             {/* Payment Screenshot */}
             <div className="rounded-[8px] border border-card-border p-4">
               <Label className="mb-2 block">Payment Screenshot</Label>
-              <p className="text-[11px] text-muted mb-3">Upload proof of registration fee payment (P100.00)</p>
+              <p className="text-[11px] text-muted mb-3">Upload proof of registration fee payment (P200.00)</p>
               <input
                 ref={paymentInputRef}
                 type="file"
