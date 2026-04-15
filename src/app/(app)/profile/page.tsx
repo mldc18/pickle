@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useApp } from "@/context/app-context";
-import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut } from "lucide-react";
+import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut, ShieldAlert } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, isAdmin, logout } = useAuth();
@@ -46,6 +46,8 @@ export default function ProfilePage() {
     { label: "Email", value: user.email, icon: Mail },
     { label: "Mobile", value: user.mobile, icon: Phone },
     { label: "Address", value: user.address, icon: MapPin },
+    { label: "Emergency Contact", value: user.emergencyContactName || "Not set", icon: ShieldAlert },
+    { label: "Emergency Number", value: user.emergencyContactNumber || "Not set", icon: Phone },
     { label: "Member Since", value: user.createdAt, icon: Calendar },
   ];
 

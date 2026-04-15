@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatShortMonth, get6MonthRange, getMonthKey } from "@/lib/utils";
-import { Search, Check, Save } from "lucide-react";
+import { Search, Check, Save, Download } from "lucide-react";
 import { cn } from "@/lib/cn";
 import Link from "next/link";
 
@@ -58,19 +58,52 @@ export default function AdminUsersPage() {
 
   const hasChanges = Object.keys(pendingChanges).length > 0;
 
+  function handleExportCSV() {
+    const headers = ["Full Name", "Email", "Mobile", "Address", "Emergency Contact", "Emergency Contact Number", "Role", "Status", "Member Since"];
+    const rows = users
+      .sort((a, b) => a.lastName.localeCompare(b.lastName))
+      .map((u) => [
+        u.fullName,
+        u.email,
+        u.mobile,
+        u.address,
+        u.emergencyContactName || "",
+        u.emergencyContactNumber || "",
+        u.role,
+        u.isPaid ? "Active" : "Inactive",
+        u.createdAt,
+      ]);
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `lampa-users-${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between animate-fade-up">
         <h1 className="text-[21px] font-extrabold tracking-[-0.3px]">Users & Status</h1>
-        {hasChanges && (
-          <Button size="sm" onClick={handleSave}>
-            <Save className="h-4 w-4" />
-            Save
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={handleExportCSV}>
+            <Download className="h-4 w-4" />
+            Export
           </Button>
-        )}
-        {saved && (
-          <span className="text-[11px] text-accent-hover font-bold">Saved</span>
-        )}
+          {hasChanges && (
+            <Button size="sm" onClick={handleSave}>
+              <Save className="h-4 w-4" />
+              Save
+            </Button>
+          )}
+          {saved && (
+            <span className="text-[11px] text-accent-hover font-bold">Saved</span>
+          )}
+        </div>
       </div>
 
       <div className="relative animate-fade-up" style={{ animationDelay: "0.05s" }}>

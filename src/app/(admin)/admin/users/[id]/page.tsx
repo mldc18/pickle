@@ -5,7 +5,7 @@ import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, Plus } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, Plus, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminUserDetailPage({
@@ -34,6 +34,8 @@ export default function AdminUserDetailPage({
     { label: "Email", value: user.email, icon: Mail },
     { label: "Mobile", value: user.mobile, icon: Phone },
     { label: "Address", value: user.address, icon: MapPin },
+    { label: "Emergency Contact", value: user.emergencyContactName || "Not set", icon: ShieldAlert },
+    { label: "Emergency Number", value: user.emergencyContactNumber || "Not set", icon: Phone },
     { label: "Member Since", value: user.createdAt, icon: Calendar },
   ];
 

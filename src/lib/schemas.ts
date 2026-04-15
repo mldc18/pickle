@@ -48,6 +48,11 @@ export const userSchema = z.object({
   avatarUrl: z.string().min(1),
   /** User-editable display photo shown on player list + profile. */
   photoUrl: z.string().nullable(),
+  /** Payment screenshot uploaded at registration. */
+  paymentScreenshotUrl: z.string().nullable(),
+  emergencyContactName: z.string(),
+  emergencyContactNumber: z.string(),
+  acceptedRules: z.boolean(),
   isPaid: z.boolean(),
   paymentHistory: z.array(monthlyPaymentSchema),
   noShowCount: z.number().int().nonnegative(),
@@ -97,11 +102,15 @@ export const registerStep2Schema = z.object({
   email: z.string().email("Please enter a valid email"),
   mobile: z.string().min(1, "Mobile number is required"),
   address: z.string().min(1, "Address is required"),
+  emergencyContactName: z.string().min(1, "Emergency contact name is required"),
+  emergencyContactNumber: z.string().min(1, "Emergency contact number is required"),
 });
 
 export const registerStep3Schema = z.object({
   acceptedTerms: z.literal(true, { message: "You must accept the waiver" }),
+  acceptedRules: z.literal(true, { message: "You must accept the rules & regulations" }),
   profilePhoto: z.instanceof(Blob, { message: "A profile photo is required" }),
+  paymentScreenshot: z.instanceof(Blob, { message: "Payment screenshot is required" }),
 });
 
 /** Full registration payload — step1 (without confirmPassword) + step2 + step3. */
@@ -113,8 +122,12 @@ export const registrationFormSchema = z.object({
   email: z.string().email(),
   mobile: z.string().min(1),
   address: z.string().min(1),
+  emergencyContactName: z.string().min(1),
+  emergencyContactNumber: z.string().min(1),
   acceptedTerms: z.boolean(),
+  acceptedRules: z.boolean(),
   profilePhoto: z.instanceof(Blob),
+  paymentScreenshot: z.instanceof(Blob),
 });
 
 // ---------------------------------------------------------------------------

@@ -59,7 +59,11 @@ type UserRow = {
   role: "member" | "admin" | "super_admin";
   avatar_url: string;
   photo_url: string | null;
+  payment_screenshot_url: string | null;
+  emergency_contact_name: string;
+  emergency_contact_number: string;
   accepted_terms: boolean;
+  accepted_rules: boolean;
   created_at: string;
 };
 
@@ -145,6 +149,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         role: u.role,
         avatarUrl: u.avatar_url,
         photoUrl: u.photo_url,
+        paymentScreenshotUrl: u.payment_screenshot_url ?? null,
+        emergencyContactName: u.emergency_contact_name ?? "",
+        emergencyContactNumber: u.emergency_contact_number ?? "",
+        acceptedRules: u.accepted_rules ?? false,
         isPaid: userPayments.get(currentMonth) ?? false,
         paymentHistory,
         noShowCount: noShowCounts.get(u.id) ?? 0,

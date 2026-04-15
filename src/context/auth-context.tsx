@@ -47,6 +47,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: data.role,
         avatarUrl: data.avatar_url,
         photoUrl: data.photo_url ?? null,
+        paymentScreenshotUrl: data.payment_screenshot_url ?? null,
+        emergencyContactName: data.emergency_contact_name ?? "",
+        emergencyContactNumber: data.emergency_contact_number ?? "",
+        acceptedRules: data.accepted_rules ?? false,
         // isPaid / paymentHistory / noShowCount are derived — populated later
         // once app-context is wired to Supabase. For now, defaults.
         isPaid: false,
@@ -130,8 +134,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             last_name: lastName,
             mobile: data.mobile,
             address: data.address,
+            emergency_contact_name: data.emergencyContactName,
+            emergency_contact_number: data.emergencyContactNumber,
             role: "member",
             accepted_terms: data.acceptedTerms,
+            accepted_rules: data.acceptedRules,
           },
         },
       });
@@ -155,9 +162,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(path);
       const avatarUrl = publicUrlData.publicUrl;
 
+      // Upload payment screenshot
+      const paymentPath = `${newUserId}/registration.jpg`;
+      const { error: paymentUploadError } = await supabase.storage
+        .from("payment-screenshots")
+        .upload(paymentPath, data.paymentScreenshot, {
+          contentType: "image/jpeg",
+          upsert: true,
+        });
+      if (paymentUploadError) {
+        return { ok: false as const, error: `Payment screenshot upload failed: ${paymentUploadError.message}` };
+      }
+      const { data: paymentUrlData } = supabase.storage.from("payment-screenshots").getPublicUrl(paymentPath);
+      const paymentScreenshotUrl = paymentUrlData.publicUrl;
+
       const { error: updateError } = await supabase
         .from("users")
-        .update({ avatar_url: avatarUrl })
+        .update({ avatar_url: avatarUrl, payment_screenshot_url: paymentScreenshotUrl })
         .eq("id", newUserId);
       if (updateError) {
         return { ok: false as const, error: `Profile update failed: ${updateError.message}` };
