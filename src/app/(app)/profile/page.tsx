@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut, ShieldAlert, IdCard, Pencil, X, Check, AlertCircle } from "lucide-react";
 
 export default function ProfilePage() {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { users, updateOwnPhoto, updateProfile } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -27,9 +27,9 @@ export default function ProfilePage() {
   if (!user) return null;
 
   // Pull live isPaid / paymentHistory from app-context (sourced from
-  // monthly_payments). Admins and super_admins are considered active.
+  // monthly_payments). All users must pay — no admin bypass.
   const liveRow = users.find((u) => u.id === user.id);
-  const isActive = isAdmin || (liveRow?.isPaid ?? false);
+  const isActive = liveRow?.isPaid ?? false;
   const paymentHistory = liveRow?.paymentHistory ?? user.paymentHistory;
 
   // Prefer the user-editable display photo; fall back to the security selfie.

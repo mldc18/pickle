@@ -8,7 +8,7 @@ import { MAX_SLOTS } from "@/lib/constants";
 import { Ban, CreditCard } from "lucide-react";
 
 export function RegistrationPanel() {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { gameDay, getRegistrationStatus, users } = useApp();
 
   if (!user) return null;
@@ -19,9 +19,9 @@ export function RegistrationPanel() {
   const isBlocked = status === "blocked";
 
   // Derive the current user's paid status from app-context (source of truth
-  // from monthly_payments). Admins and super_admins bypass the paid check.
+  // from monthly_payments). All users must pay — no admin bypass.
   const currentUserRow = users.find((u) => u.id === user.id);
-  const effectivePaid = isAdmin || (currentUserRow?.isPaid ?? false);
+  const effectivePaid = currentUserRow?.isPaid ?? false;
 
   return (
     <div className="flex flex-col gap-4">
