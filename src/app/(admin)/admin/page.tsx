@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApp } from "@/context/app-context";
+import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Users, CreditCard, Trophy, Clock, ChevronLeft, ChevronRight, UserPlus, UserCheck, Eye, CheckCircle } from "lucide-react";
 import { getMonthKey } from "@/lib/utils";
@@ -9,6 +10,7 @@ import Link from "next/link";
 
 export default function AdminDashboardPage() {
   const { users, gameDay, togglePayment } = useApp();
+  const { isSuperAdmin } = useAuth();
   const [monthOffset, setMonthOffset] = useState(0);
   const [activatingId, setActivatingId] = useState<string | null>(null);
 
@@ -108,8 +110,8 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Pending Verification */}
-      {pendingVerification.length > 0 && (
+      {/* Pending Verification — super admins only */}
+      {isSuperAdmin && pendingVerification.length > 0 && (
         <div className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
           <span className="text-[11px] font-bold tracking-[2px] uppercase text-muted mb-3 block">Pending Verification</span>
           <div className="flex flex-col gap-2">
