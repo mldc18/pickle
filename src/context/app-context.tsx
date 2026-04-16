@@ -462,12 +462,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       if (Object.keys(row).length === 0) return { ok: true };
 
-      // If email changed, also update the Supabase auth email
-      if (row.email) {
-        const { error: authError } = await supabase.auth.updateUser({ email: row.email });
-        if (authError) return { ok: false, error: authError.message };
-      }
-
       const { error } = await supabase.from("users").update(row).eq("id", uid);
       if (error) return { ok: false, error: error.message };
 
