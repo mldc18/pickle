@@ -6,22 +6,29 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatShortMonth, get6MonthRange, getMonthKey } from "@/lib/utils";
-import { Search, Check, Save, Download } from "lucide-react";
+import { Search, Check, Save, Download, Shield, ShieldCheck, Filter } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { shortName } from "@/lib/utils";
 import Link from "next/link";
 
 export default function AdminUsersPage() {
   const { users, togglePayment } = useApp();
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "member" | "admin" | "super_admin">("all");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [pendingChanges, setPendingChanges] = useState<Record<string, Record<string, boolean>>>({});
   const [saved, setSaved] = useState(false);
 
   const months = get6MonthRange();
   const currentMonth = getMonthKey(new Date());
 
-  const filtered = users.filter((u) =>
-    u.fullName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = users.filter((u) => {
+    if (!u.fullName.toLowerCase().includes(search.toLowerCase())) return false;
+    if (roleFilter !== "all" && u.role !== roleFilter) return false;
+    if (paymentFilter === "paid" && !u.isPaid) return false;
+    if (paymentFilter === "unpaid" && u.isPaid) return false;
+    return true;
+  });
 
   function getStatus(userId: string, month: string): boolean {
     if (pendingChanges[userId]?.[month] !== undefined) {
@@ -117,6 +124,48 @@ export default function AdminUsersPage() {
         />
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 animate-fade-up" style={{ animationDelay: "0.07s" }}>
+        <div className="flex items-center gap-1.5">
+          <Filter className="h-3 w-3 text-muted" />
+          <span className="text-[10px] font-bold uppercase tracking-[1px] text-muted">Role:</span>
+        </div>
+        {(["all", "member", "admin", "super_admin"] as const).map((r) => (
+          <button
+            key={r}
+            onClick={() => setRoleFilter(r)}
+            className={cn(
+              "inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors",
+              roleFilter === r
+                ? "bg-accent-soft text-accent-hover border-accent/30"
+                : "bg-card text-muted border-card-border hover:border-accent/20"
+            )}
+          >
+            {r === "admin" && <Shield className="h-2.5 w-2.5" />}
+            {r === "super_admin" && <ShieldCheck className="h-2.5 w-2.5" />}
+            {r === "all" ? "All" : r === "super_admin" ? "Super Admin" : r === "admin" ? "Admin" : "Member"}
+          </button>
+        ))}
+        <span className="text-card-border">|</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-[1px] text-muted">Status:</span>
+        </div>
+        {(["all", "paid", "unpaid"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setPaymentFilter(s)}
+            className={cn(
+              "text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors",
+              paymentFilter === s
+                ? "bg-accent-soft text-accent-hover border-accent/30"
+                : "bg-card text-muted border-card-border hover:border-accent/20"
+            )}
+          >
+            {s === "all" ? "All" : s === "paid" ? "Paid" : "Unpaid"}
+          </button>
+        ))}
+      </div>
+
       <div className="rounded-[16px] border border-card-border bg-card shadow-[0_1px_4px_rgba(0,0,0,0.04)] p-0 overflow-hidden animate-fade-up" style={{ animationDelay: "0.1s" }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -142,8 +191,10 @@ export default function AdminUsersPage() {
                 .map((user) => (
                   <tr key={user.id} className="border-b border-card-border/50 hover:bg-accent-soft/30 transition-colors">
                     <td className="sticky left-0 z-10 bg-card px-2.5 py-2.5 whitespace-nowrap max-w-[120px]">
-                      <Link href={`/admin/users/${user.id}`} className="hover:text-accent-hover transition-colors text-[11px] font-bold truncate block">
-                        {user.firstName} {user.lastName[0]}.
+                      <Link href={`/admin/users/${user.id}`} className="hover:text-accent-hover transition-colors text-[11px] font-bold truncate flex items-center gap-1">
+                        {shortName(user.firstName, user.lastName)}
+                        {user.role === "super_admin" && <ShieldCheck className="h-2.5 w-2.5 text-warning-dark shrink-0" />}
+                        {user.role === "admin" && <Shield className="h-2.5 w-2.5 text-warning-dark shrink-0" />}
                       </Link>
                       <Badge variant={user.isPaid ? "success" : "destructive"} className="text-[8px] mt-0.5">
                         {user.isPaid ? "Paid" : "Unpaid"}

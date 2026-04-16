@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
-import { Users, CreditCard, Trophy, Clock, ChevronLeft, ChevronRight, UserPlus, UserCheck, Eye, CheckCircle } from "lucide-react";
-import { getMonthKey } from "@/lib/utils";
+import { Users, CreditCard, Trophy, Clock, ChevronLeft, ChevronRight, UserPlus, UserCheck, Eye, CheckCircle, Shield, ShieldCheck } from "lucide-react";
+import { getMonthKey, shortName } from "@/lib/utils";
 import Link from "next/link";
 
 export default function AdminDashboardPage() {
@@ -129,7 +129,11 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold truncate">{u.fullName}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[13px] font-bold truncate">{shortName(u.firstName, u.lastName)}</p>
+                    {u.role === "super_admin" && <ShieldCheck className="h-3 w-3 text-warning-dark shrink-0" />}
+                    {u.role === "admin" && <Shield className="h-3 w-3 text-warning-dark shrink-0" />}
+                  </div>
                   <p className="text-[10px] text-text-muted font-medium">Registered {u.createdAt}</p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -147,7 +151,7 @@ export default function AdminDashboardPage() {
                     onClick={() => handleActivate(u.id)}
                   >
                     <CheckCircle className="h-3 w-3" />
-                    {activatingId === u.id ? "..." : "Activate"}
+                    {activatingId === u.id ? "..." : "Mark as Paid"}
                   </Button>
                 </div>
               </div>

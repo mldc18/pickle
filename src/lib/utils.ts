@@ -77,3 +77,15 @@ export function getLast12Months(): string[] {
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
 }
+
+/** Capitalize each word: "john doe" → "John Doe" */
+function capitalize(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Short display name: "Clarence Aquino" → "Clarence A." */
+export function shortName(firstName: string, lastName: string): string {
+  const f = capitalize(firstName.trim());
+  const l = lastName.trim();
+  return l ? `${f} ${l[0].toUpperCase()}.` : f;
+}
