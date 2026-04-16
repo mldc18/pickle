@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         avatarUrl: data.avatar_url,
         photoUrl: data.photo_url ?? null,
         paymentScreenshotUrl: data.payment_screenshot_url ?? null,
+        laMareaIdUrl: data.la_marea_id_url ?? null,
         emergencyContactName: data.emergency_contact_name ?? "",
         emergencyContactNumber: data.emergency_contact_number ?? "",
         acceptedRules: data.accepted_rules ?? false,
@@ -176,9 +177,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: paymentUrlData } = supabase.storage.from("payment-screenshots").getPublicUrl(paymentPath);
       const paymentScreenshotUrl = paymentUrlData.publicUrl;
 
+      // Upload La Marea ID
+      const laMareaIdPath = `${newUserId}/la-marea-id.jpg`;
+      const { error: laMareaIdUploadError } = await supabase.storage
+        .from("la-marea-ids")
+        .upload(laMareaIdPath, data.laMareaId, {
+          contentType: "image/jpeg",
+          upsert: true,
+        });
+      if (laMareaIdUploadError) {
+        return { ok: false as const, error: `La Marea ID upload failed: ${laMareaIdUploadError.message}` };
+      }
+      const { data: laMareaIdUrlData } = supabase.storage.from("la-marea-ids").getPublicUrl(laMareaIdPath);
+      const laMareaIdUrl = laMareaIdUrlData.publicUrl;
+
       const { error: updateError } = await supabase
         .from("users")
-        .update({ avatar_url: avatarUrl, payment_screenshot_url: paymentScreenshotUrl })
+        .update({
+          avatar_url: avatarUrl,
+          payment_screenshot_url: paymentScreenshotUrl,
+          la_marea_id_url: laMareaIdUrl,
+          emergency_contact_name: data.emergencyContactName,
+          emergency_contact_number: data.emergencyContactNumber,
+        })
         .eq("id", newUserId);
       if (updateError) {
         return { ok: false as const, error: `Profile update failed: ${updateError.message}` };

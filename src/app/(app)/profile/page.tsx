@@ -3,14 +3,26 @@
 import { useRef, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useApp } from "@/context/app-context";
-import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut, ShieldAlert } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut, ShieldAlert, IdCard, Pencil, X, Check, AlertCircle } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, isAdmin, logout } = useAuth();
-  const { users, updateOwnPhoto } = useApp();
+  const { users, updateOwnPhoto, updateProfile } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Edit mode
+  const [editing, setEditing] = useState(false);
+  const [editEmail, setEditEmail] = useState("");
+  const [editMobile, setEditMobile] = useState("");
+  const [editEmergencyName, setEditEmergencyName] = useState("");
+  const [editEmergencyNumber, setEditEmergencyNumber] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   if (!user) return null;
 
@@ -22,6 +34,13 @@ export default function ProfilePage() {
 
   // Prefer the user-editable display photo; fall back to the security selfie.
   const displayPhoto = liveRow?.photoUrl ?? user.photoUrl ?? user.avatarUrl;
+
+  // Use live data for editable fields
+  const currentEmail = liveRow?.email ?? user.email;
+  const currentMobile = liveRow?.mobile ?? user.mobile;
+  const currentEmergencyName = liveRow?.emergencyContactName ?? user.emergencyContactName;
+  const currentEmergencyNumber = liveRow?.emergencyContactNumber ?? user.emergencyContactNumber;
+  const currentLaMareaIdUrl = liveRow?.laMareaIdUrl ?? user.laMareaIdUrl;
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -41,13 +60,62 @@ export default function ProfilePage() {
     }
   }
 
+  function startEditing() {
+    setEditEmail(currentEmail);
+    setEditMobile(currentMobile);
+    setEditEmergencyName(currentEmergencyName);
+    setEditEmergencyNumber(currentEmergencyNumber);
+    setEditError(null);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setEditing(false);
+    setEditError(null);
+  }
+
+  async function handleSaveProfile() {
+    setEditError(null);
+    if (!editEmail.trim() || !editEmail.includes("@")) {
+      setEditError("Please enter a valid email");
+      return;
+    }
+    if (!editMobile.trim()) {
+      setEditError("Mobile number is required");
+      return;
+    }
+    if (!editEmergencyName.trim()) {
+      setEditError("Emergency contact name is required");
+      return;
+    }
+    if (!editEmergencyNumber.trim()) {
+      setEditError("Emergency contact number is required");
+      return;
+    }
+
+    setSaving(true);
+    const result = await updateProfile({
+      email: editEmail.trim(),
+      mobile: editMobile.trim(),
+      emergencyContactName: editEmergencyName.trim(),
+      emergencyContactNumber: editEmergencyNumber.trim(),
+    });
+    setSaving(false);
+
+    if (result.ok) {
+      setEditing(false);
+    } else {
+      setEditError(result.error ?? "Update failed");
+    }
+  }
+
   const fields = [
     { label: "Full Name", value: user.fullName, icon: User },
-    { label: "Email", value: user.email, icon: Mail },
-    { label: "Mobile", value: user.mobile, icon: Phone },
+    { label: "Email", value: currentEmail, icon: Mail, editable: true },
+    { label: "Mobile", value: currentMobile, icon: Phone, editable: true },
     { label: "Address", value: user.address, icon: MapPin },
-    { label: "Emergency Contact", value: user.emergencyContactName || "Not set", icon: ShieldAlert },
-    { label: "Emergency Number", value: user.emergencyContactNumber || "Not set", icon: Phone },
+    { label: "Emergency Contact", value: currentEmergencyName || "Not set", icon: ShieldAlert, editable: true },
+    { label: "Emergency Number", value: currentEmergencyNumber || "Not set", icon: Phone, editable: true },
     { label: "Member Since", value: user.createdAt, icon: Calendar },
   ];
 
@@ -132,27 +200,102 @@ export default function ProfilePage() {
 
       {/* Details */}
       <div className="animate-fade-up" style={{ animationDelay: "0.1s" }}>
-        <span className="text-[11px] font-bold tracking-[2px] uppercase text-muted mb-4 block">Details</span>
-        <div className="flex flex-col">
-          {fields.map((f, i) => {
-            const Icon = f.icon;
-            return (
-              <div
-                key={f.label}
-                className={`flex items-center gap-3 py-3.5 ${i < fields.length - 1 ? "border-b border-card-border" : ""}`}
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-input-bg text-muted">
-                  <Icon className="h-4 w-4" />
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[11px] font-bold tracking-[2px] uppercase text-muted">Details</span>
+          {!editing ? (
+            <button
+              type="button"
+              onClick={startEditing}
+              className="inline-flex items-center gap-1.5 text-[11px] text-accent-hover font-bold hover:underline"
+            >
+              <Pencil className="h-3 w-3" />
+              Edit
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={cancelEditing} disabled={saving}>
+                <X className="h-3.5 w-3.5" />
+                Cancel
+              </Button>
+              <Button type="button" size="sm" onClick={handleSaveProfile} disabled={saving}>
+                <Check className="h-3.5 w-3.5" />
+                {saving ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {editError && (
+          <div className="flex items-center gap-2 text-sm font-medium text-destructive bg-destructive/10 rounded-[8px] p-3 mb-3">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {editError}
+          </div>
+        )}
+
+        {editing ? (
+          <div className="flex flex-col gap-4 bg-card border border-card-border rounded-[12px] p-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input id="edit-email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-mobile">Mobile Number</Label>
+              <Input id="edit-mobile" value={editMobile} onChange={(e) => setEditMobile(e.target.value)} />
+            </div>
+            <div className="border-t border-card-border pt-4">
+              <p className="text-[11px] font-bold tracking-[1px] uppercase text-muted mb-3">Emergency Contact</p>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-emergency-name">Contact Person</Label>
+                  <Input id="edit-emergency-name" value={editEmergencyName} onChange={(e) => setEditEmergencyName(e.target.value)} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] uppercase tracking-[1px] text-text-muted font-medium">{f.label}</p>
-                  <p className="text-[14px] font-semibold truncate">{f.value}</p>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-emergency-number">Contact Number</Label>
+                  <Input id="edit-emergency-number" value={editEmergencyNumber} onChange={(e) => setEditEmergencyNumber(e.target.value)} />
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            {fields.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <div
+                  key={f.label}
+                  className={`flex items-center gap-3 py-3.5 ${i < fields.length - 1 ? "border-b border-card-border" : ""}`}
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-input-bg text-muted">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-[1px] text-text-muted font-medium">{f.label}</p>
+                    <p className="text-[14px] font-semibold truncate">{f.value}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {/* La Marea ID */}
+      {currentLaMareaIdUrl && (
+        <div className="animate-fade-up" style={{ animationDelay: "0.15s" }}>
+          <div className="flex items-center gap-2 mb-4">
+            <IdCard className="h-4 w-4 text-accent-hover" />
+            <span className="text-[11px] font-bold tracking-[2px] uppercase text-muted">La Marea ID</span>
+          </div>
+          <div className="bg-card border border-card-border rounded-[12px] p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={currentLaMareaIdUrl}
+              alt="La Marea ID"
+              className="w-full max-h-64 object-contain rounded-[8px]"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Registration Status */}
       <div className="animate-fade-up" style={{ animationDelay: "0.2s" }}>

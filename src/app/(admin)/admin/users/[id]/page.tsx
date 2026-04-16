@@ -5,7 +5,7 @@ import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, Plus, ShieldAlert } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, Plus, ShieldAlert, IdCard } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminUserDetailPage({
@@ -97,6 +97,24 @@ export default function AdminUserDetailPage({
           </div>
         </div>
       </div>
+
+      {/* La Marea ID */}
+      {user.laMareaIdUrl && (
+        <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.07s" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-accent-soft text-accent-hover">
+              <IdCard className="h-3.5 w-3.5" />
+            </div>
+            <p className="text-[15px] font-bold">La Marea ID</p>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={user.laMareaIdUrl}
+            alt="La Marea ID"
+            className="w-full max-h-64 object-contain rounded-[8px] border border-card-border"
+          />
+        </div>
+      )}
 
       {/* Admin Role */}
       <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.1s" }}>

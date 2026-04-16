@@ -38,6 +38,8 @@ interface AppContextType {
   toggleSuperAdmin: (userId: string) => Promise<void>;
   /** Uploads a new display photo for the current user and returns its public URL. */
   updateOwnPhoto: (file: Blob) => Promise<string | null>;
+  /** Updates editable profile fields for the current user. */
+  updateProfile: (fields: { email?: string; mobile?: string; emergencyContactName?: string; emergencyContactNumber?: string }) => Promise<{ ok: boolean; error?: string }>;
   getGameDay: (date: string) => GameDay | undefined;
 }
 
@@ -60,6 +62,7 @@ type UserRow = {
   avatar_url: string;
   photo_url: string | null;
   payment_screenshot_url: string | null;
+  la_marea_id_url: string | null;
   emergency_contact_name: string;
   emergency_contact_number: string;
   accepted_terms: boolean;
@@ -150,6 +153,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         avatarUrl: u.avatar_url,
         photoUrl: u.photo_url,
         paymentScreenshotUrl: u.payment_screenshot_url ?? null,
+        laMareaIdUrl: u.la_marea_id_url ?? null,
         emergencyContactName: u.emergency_contact_name ?? "",
         emergencyContactNumber: u.emergency_contact_number ?? "",
         acceptedRules: u.accepted_rules ?? false,
@@ -444,6 +448,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [supabase, fetchAll],
   );
 
+  const updateProfile = useCallback(
+    async (fields: { email?: string; mobile?: string; emergencyContactName?: string; emergencyContactNumber?: string }): Promise<{ ok: boolean; error?: string }> => {
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData.user?.id;
+      if (!uid) return { ok: false, error: "Not authenticated" };
+
+      const row: Record<string, string> = {};
+      if (fields.email !== undefined) row.email = fields.email;
+      if (fields.mobile !== undefined) row.mobile = fields.mobile;
+      if (fields.emergencyContactName !== undefined) row.emergency_contact_name = fields.emergencyContactName;
+      if (fields.emergencyContactNumber !== undefined) row.emergency_contact_number = fields.emergencyContactNumber;
+
+      if (Object.keys(row).length === 0) return { ok: true };
+
+      // If email changed, also update the Supabase auth email
+      if (row.email) {
+        const { error: authError } = await supabase.auth.updateUser({ email: row.email });
+        if (authError) return { ok: false, error: authError.message };
+      }
+
+      const { error } = await supabase.from("users").update(row).eq("id", uid);
+      if (error) return { ok: false, error: error.message };
+
+      await fetchAll();
+      return { ok: true };
+    },
+    [supabase, fetchAll],
+  );
+
   const toggleSuperAdmin = useCallback(
     async (userId: string) => {
       const current = users.find((u) => u.id === userId);
@@ -488,6 +521,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleAdmin,
         toggleSuperAdmin,
         updateOwnPhoto,
+        updateProfile,
         getGameDay,
       }}
     >

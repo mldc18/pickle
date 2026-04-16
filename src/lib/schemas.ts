@@ -50,6 +50,8 @@ export const userSchema = z.object({
   photoUrl: z.string().nullable(),
   /** Payment screenshot uploaded at registration. */
   paymentScreenshotUrl: z.string().nullable(),
+  /** La Marea ID photo uploaded at registration. */
+  laMareaIdUrl: z.string().nullable(),
   emergencyContactName: z.string(),
   emergencyContactNumber: z.string(),
   acceptedRules: z.boolean(),
@@ -111,6 +113,7 @@ export const registerStep3Schema = z.object({
   acceptedRules: z.literal(true, { message: "You must accept the rules & regulations" }),
   profilePhoto: z.instanceof(Blob, { message: "A profile photo is required" }),
   paymentScreenshot: z.instanceof(Blob, { message: "Payment screenshot is required" }),
+  laMareaId: z.instanceof(Blob, { message: "La Marea ID photo is required" }),
 });
 
 /** Full registration payload — step1 (without confirmPassword) + step2 + step3. */
@@ -128,6 +131,7 @@ export const registrationFormSchema = z.object({
   acceptedRules: z.boolean(),
   profilePhoto: z.instanceof(Blob),
   paymentScreenshot: z.instanceof(Blob),
+  laMareaId: z.instanceof(Blob),
 });
 
 // ---------------------------------------------------------------------------

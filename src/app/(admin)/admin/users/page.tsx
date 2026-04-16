@@ -59,7 +59,7 @@ export default function AdminUsersPage() {
   const hasChanges = Object.keys(pendingChanges).length > 0;
 
   function handleExportCSV() {
-    const headers = ["Full Name", "Email", "Mobile", "Address", "Emergency Contact", "Emergency Contact Number", "Role", "Status", "Member Since"];
+    const headers = ["Full Name", "Email", "Mobile", "Address", "Emergency Contact", "Emergency Contact Number", "Role", "Status", "Member Since", "La Marea ID URL"];
     const rows = users
       .sort((a, b) => a.lastName.localeCompare(b.lastName))
       .map((u) => [
@@ -72,6 +72,7 @@ export default function AdminUsersPage() {
         u.role,
         u.isPaid ? "Active" : "Inactive",
         u.createdAt,
+        u.laMareaIdUrl || "",
       ]);
     const csvContent = [headers, ...rows]
       .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
