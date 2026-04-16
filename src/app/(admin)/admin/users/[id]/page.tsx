@@ -83,7 +83,7 @@ export default function AdminUserDetailPage({
               <p className="text-[11px] text-text-muted font-medium">@{user.username}</p>
               <div className="flex gap-2 mt-2">
                 <Badge variant={user.isPaid ? "success" : "destructive"}>
-                  {user.isPaid ? "Active" : "Inactive"}
+                  {user.isPaid ? "Paid" : "Unpaid"}
                 </Badge>
                 {isUserSuperAdmin ? (
                   <Badge variant="warning">Super Admin</Badge>

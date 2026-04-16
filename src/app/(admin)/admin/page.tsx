@@ -48,8 +48,8 @@ export default function AdminDashboardPage() {
   }).length;
 
   const monthStats = [
-    { label: "Active", value: paidThisMonth, icon: CreditCard, color: "text-accent-hover bg-accent-soft" },
-    { label: "Inactive", value: unpaidThisMonth, icon: CreditCard, color: "text-destructive bg-destructive/10" },
+    { label: "Paid", value: paidThisMonth, icon: CreditCard, color: "text-accent-hover bg-accent-soft" },
+    { label: "Unpaid", value: unpaidThisMonth, icon: CreditCard, color: "text-destructive bg-destructive/10" },
     { label: "Registered", value: registeredThisMonth, icon: UserPlus, color: "text-accent-hover bg-accent-soft" },
   ];
 

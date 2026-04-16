@@ -327,7 +327,7 @@ export default function ProfilePage() {
                   >
                     <span className="text-[14px] font-semibold">{entry.monthName}</span>
                     <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${entry.paid ? "bg-accent-soft text-accent-hover" : "bg-destructive/10 text-destructive"}`}>
-                      {entry.paid ? "Active" : "Inactive"}
+                      {entry.paid ? "Paid" : "Unpaid"}
                     </span>
                   </div>
                 ))}

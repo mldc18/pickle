@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
         u.emergencyContactName || "",
         u.emergencyContactNumber || "",
         u.role,
-        u.isPaid ? "Active" : "Inactive",
+        u.isPaid ? "Paid" : "Unpaid",
         u.createdAt,
         u.laMareaIdUrl || "",
       ]);
@@ -146,7 +146,7 @@ export default function AdminUsersPage() {
                         {user.firstName} {user.lastName[0]}.
                       </Link>
                       <Badge variant={user.isPaid ? "success" : "destructive"} className="text-[8px] mt-0.5">
-                        {user.isPaid ? "Active" : "Inactive"}
+                        {user.isPaid ? "Paid" : "Unpaid"}
                       </Badge>
                     </td>
                     {months.map((m) => {

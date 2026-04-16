@@ -48,13 +48,17 @@ export function getMonthKey(date: Date): string {
   return `${y}-${m}`;
 }
 
+/** Earliest month the association tracks. */
+const EARLIEST_MONTH = "2026-04";
+
 export function get6MonthRange(): string[] {
   const months: string[] = [];
   const now = new Date();
   // past 2 months, current month, future 3 months
   for (let i = 2; i >= -3; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i);
-    months.push(getMonthKey(d));
+    const key = getMonthKey(d);
+    if (key >= EARLIEST_MONTH) months.push(key);
   }
   return months;
 }
@@ -64,7 +68,8 @@ export function getLast12Months(): string[] {
   const now = new Date();
   for (let i = 0; i < 12; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i);
-    months.push(getMonthKey(d));
+    const key = getMonthKey(d);
+    if (key >= EARLIEST_MONTH) months.push(key);
   }
   return months;
 }
