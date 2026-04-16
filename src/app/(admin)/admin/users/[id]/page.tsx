@@ -1,11 +1,12 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, Plus, ShieldAlert, IdCard, Receipt } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, Plus, ShieldAlert, IdCard, Receipt, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminUserDetailPage({
@@ -14,9 +15,12 @@ export default function AdminUserDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { users, incrementNoShow, toggleAdmin, toggleSuperAdmin } = useApp();
-  const { user: currentUser, isSuperAdmin } = useAuth();
+  const router = useRouter();
+  const { users, incrementNoShow, toggleAdmin, toggleSuperAdmin, deleteUser } = useApp();
+  const { user: currentUser, isAdmin, isSuperAdmin } = useAuth();
   const user = users.find((u) => u.id === id);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!user) {
     return (
@@ -98,8 +102,8 @@ export default function AdminUserDetailPage({
         </div>
       </div>
 
-      {/* Payment Screenshot & La Marea ID — super admins only */}
-      {isSuperAdmin && (
+      {/* Payment Screenshot & La Marea ID — visible to all admins */}
+      {isAdmin && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 animate-fade-up" style={{ animationDelay: "0.07s" }}>
           <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
             <div className="flex items-center gap-2 mb-3">
@@ -219,6 +223,52 @@ export default function AdminUserDetailPage({
           </Button>
         </div>
       </div>
+
+      {/* Delete User — super admins only, cannot delete yourself */}
+      {isSuperAdmin && currentUser?.id !== user.id && (
+        <div className="rounded-[16px] border border-destructive/20 bg-destructive/5 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.2s" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-destructive/10 text-destructive shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold text-destructive">Delete User</p>
+                <p className="text-[11px] text-text-muted font-medium">Permanently remove this user and all their data</p>
+              </div>
+            </div>
+            {!confirmDelete ? (
+              <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleting}
+                  onClick={async () => {
+                    setDeleting(true);
+                    const result = await deleteUser(user.id);
+                    if (result.ok) {
+                      router.push("/admin/users");
+                    } else {
+                      setDeleting(false);
+                      setConfirmDelete(false);
+                    }
+                  }}
+                >
+                  {deleting ? "Deleting..." : "Confirm Delete"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

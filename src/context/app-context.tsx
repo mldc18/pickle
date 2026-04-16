@@ -40,6 +40,8 @@ interface AppContextType {
   updateOwnPhoto: (file: Blob) => Promise<string | null>;
   /** Updates editable profile fields for the current user. */
   updateProfile: (fields: { email?: string; mobile?: string; emergencyContactName?: string; emergencyContactNumber?: string }) => Promise<{ ok: boolean; error?: string }>;
+  /** Deletes a user (super admin only). */
+  deleteUser: (userId: string) => Promise<{ ok: boolean; error?: string }>;
   getGameDay: (date: string) => GameDay | undefined;
 }
 
@@ -489,6 +491,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [supabase, users, fetchAll],
   );
 
+  const deleteUser = useCallback(
+    async (userId: string): Promise<{ ok: boolean; error?: string }> => {
+      const { error } = await supabase.rpc("delete_user", { target_user_id: userId });
+      if (error) return { ok: false, error: error.message };
+      await fetchAll();
+      return { ok: true };
+    },
+    [supabase, fetchAll],
+  );
+
   // MAX_SLOTS is referenced in type signatures via the schema; also re-export
   // here as a silent no-op so the import isn't tree-shaken as unused.
   void MAX_SLOTS;
@@ -516,6 +528,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleSuperAdmin,
         updateOwnPhoto,
         updateProfile,
+        deleteUser,
         getGameDay,
       }}
     >
