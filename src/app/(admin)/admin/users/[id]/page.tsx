@@ -146,9 +146,9 @@ export default function AdminUserDetailPage({
 
       {/* Admin Role */}
       <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.1s" }}>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-[13px] shadow-[0_2px_8px_rgba(0,0,0,0.08)] ${isUserAdmin ? "bg-warning-soft text-warning-dark" : "bg-card-border/30 text-muted"}`}>
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] shadow-[0_2px_8px_rgba(0,0,0,0.08)] ${isUserAdmin ? "bg-warning-soft text-warning-dark" : "bg-card-border/30 text-muted"}`}>
               <Shield className="h-5 w-5" />
             </div>
             <div>
@@ -160,6 +160,7 @@ export default function AdminUserDetailPage({
             <Button
               variant={isUserAdmin ? "destructive" : "default"}
               size="sm"
+              className="w-full"
               onClick={() => toggleAdmin(user.id)}
             >
               {isUserAdmin ? (
@@ -172,13 +173,12 @@ export default function AdminUserDetailPage({
         </div>
       </div>
 
-      {/* Super Admin Role — only visible to super admins, and only on
-          other users (you cannot demote yourself and lock yourself out). */}
+      {/* Super Admin Role */}
       {isSuperAdmin && currentUser?.id !== user.id && (
         <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.12s" }}>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-[13px] shadow-[0_2px_8px_rgba(0,0,0,0.08)] ${isUserSuperAdmin ? "bg-warning-soft text-warning-dark" : "bg-card-border/30 text-muted"}`}>
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] shadow-[0_2px_8px_rgba(0,0,0,0.08)] ${isUserSuperAdmin ? "bg-warning-soft text-warning-dark" : "bg-card-border/30 text-muted"}`}>
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
@@ -193,6 +193,7 @@ export default function AdminUserDetailPage({
             <Button
               variant={isUserSuperAdmin ? "destructive" : "default"}
               size="sm"
+              className="w-full"
               onClick={() => toggleSuperAdmin(user.id)}
             >
               {isUserSuperAdmin ? (
@@ -207,29 +208,48 @@ export default function AdminUserDetailPage({
 
       {/* No-Shows */}
       <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.15s" }}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-warning-soft text-warning-dark shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[15px] font-bold">No-Shows</p>
-              <span className="text-[22px] font-extrabold">{user.noShowCount}</span>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-warning-soft text-warning-dark shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold">No-Shows</p>
+                <span className="text-[22px] font-extrabold">{user.noShowCount}</span>
+              </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => incrementNoShow(user.id)}>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => incrementNoShow(user.id)}>
             <Plus className="h-4 w-4" />
-            Add No-Show
+            Record No-Show (Today)
           </Button>
+          {user.noShowDates.length > 0 && (
+            <div className="border-t border-card-border pt-3 mt-1">
+              <p className="text-[10px] font-bold uppercase tracking-[1px] text-text-muted mb-2">No-Show History</p>
+              <div className="flex flex-col gap-1.5">
+                {user.noShowDates.map((date) => {
+                  const d = new Date(date + "T00:00:00");
+                  const formatted = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+                  return (
+                    <div key={date} className="flex items-center justify-between rounded-[8px] bg-warning-soft/50 px-3 py-2">
+                      <span className="text-[12px] font-semibold">{formatted}</span>
+                      <span className="text-[10px] font-bold text-warning-dark">Absent</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Delete User — super admins only, cannot delete yourself */}
       {isSuperAdmin && currentUser?.id !== user.id && (
         <div className="rounded-[16px] border border-destructive/20 bg-destructive/5 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.2s" }}>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-destructive/10 text-destructive shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-destructive/10 text-destructive shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
                 <Trash2 className="h-5 w-5" />
               </div>
               <div>
@@ -238,18 +258,19 @@ export default function AdminUserDetailPage({
               </div>
             </div>
             {!confirmDelete ? (
-              <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(true)}>
+              <Button variant="destructive" size="sm" className="w-full" onClick={() => setConfirmDelete(true)}>
                 <Trash2 className="h-4 w-4" />
-                Delete
+                Delete User
               </Button>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => setConfirmDelete(false)} disabled={deleting}>
                   Cancel
                 </Button>
                 <Button
                   variant="destructive"
                   size="sm"
+                  className="flex-1"
                   disabled={deleting}
                   onClick={async () => {
                     setDeleting(true);

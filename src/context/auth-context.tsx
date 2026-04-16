@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isPaid: false,
         paymentHistory: [],
         noShowCount: 0,
+        noShowDates: [],
         acceptedTerms: data.accepted_terms,
         createdAt: new Date(data.created_at).toISOString().split("T")[0],
       });

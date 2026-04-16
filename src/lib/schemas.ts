@@ -58,6 +58,8 @@ export const userSchema = z.object({
   isPaid: z.boolean(),
   paymentHistory: z.array(monthlyPaymentSchema),
   noShowCount: z.number().int().nonnegative(),
+  /** Dates (YYYY-MM-DD) on which this user was marked as a no-show. */
+  noShowDates: z.array(dateStringSchema),
   acceptedTerms: z.boolean(),
   createdAt: dateStringSchema,
 });

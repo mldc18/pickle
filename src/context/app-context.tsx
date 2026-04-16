@@ -127,8 +127,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const last12 = getLast12Months();
     const currentMonth = getMonthKey(new Date());
     const noShowCounts = new Map<string, number>();
+    const noShowDatesByUser = new Map<string, string[]>();
     for (const ns of noShowRows) {
       noShowCounts.set(ns.user_id, (noShowCounts.get(ns.user_id) ?? 0) + 1);
+      if (!noShowDatesByUser.has(ns.user_id)) noShowDatesByUser.set(ns.user_id, []);
+      noShowDatesByUser.get(ns.user_id)!.push(ns.game_date);
     }
     const paymentsByUser = new Map<string, Map<string, boolean>>();
     for (const p of paymentRows) {
@@ -162,6 +165,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isPaid: userPayments.get(currentMonth) ?? false,
         paymentHistory,
         noShowCount: noShowCounts.get(u.id) ?? 0,
+        noShowDates: (noShowDatesByUser.get(u.id) ?? []).sort().reverse(),
         acceptedTerms: u.accepted_terms,
         createdAt: new Date(u.created_at).toISOString().split("T")[0],
       };
