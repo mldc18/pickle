@@ -40,6 +40,8 @@ interface AppContextType {
   updateOwnPhoto: (file: Blob) => Promise<string | null>;
   /** Updates editable profile fields for the current user. */
   updateProfile: (fields: { email?: string; mobile?: string; emergencyContactName?: string; emergencyContactNumber?: string }) => Promise<{ ok: boolean; error?: string }>;
+  /** Uploads or replaces the current user's La Marea ID photo. */
+  updateLaMareaId: (file: Blob) => Promise<{ ok: boolean; error?: string }>;
   /** Deletes a user (super admin only). */
   deleteUser: (userId: string) => Promise<{ ok: boolean; error?: string }>;
   getGameDay: (date: string) => GameDay | undefined;
@@ -495,6 +497,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [supabase, users, fetchAll],
   );
 
+  const updateLaMareaId = useCallback(
+    async (file: Blob): Promise<{ ok: boolean; error?: string }> => {
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData.user?.id;
+      if (!uid) return { ok: false, error: "Not authenticated" };
+
+      const path = `${uid}/la-marea-id.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("la-marea-ids")
+        .upload(path, file, { contentType: "image/jpeg", upsert: true });
+      if (uploadError) return { ok: false, error: uploadError.message };
+
+      const { data: urlData } = supabase.storage.from("la-marea-ids").getPublicUrl(path);
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ la_marea_id_url: urlData.publicUrl })
+        .eq("id", uid);
+      if (updateError) return { ok: false, error: updateError.message };
+
+      await fetchAll();
+      return { ok: true };
+    },
+    [supabase, fetchAll],
+  );
+
   const deleteUser = useCallback(
     async (userId: string): Promise<{ ok: boolean; error?: string }> => {
       const { error } = await supabase.rpc("delete_user", { target_user_id: userId });
@@ -532,6 +559,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleSuperAdmin,
         updateOwnPhoto,
         updateProfile,
+        updateLaMareaId,
         deleteUser,
         getGameDay,
       }}
