@@ -100,21 +100,10 @@ export default function AdminUsersPage() {
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between animate-fade-up">
         <h1 className="text-[21px] font-extrabold tracking-[-0.3px]">Users & Status</h1>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={handleExportCSV}>
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          {hasChanges && (
-            <Button size="sm" onClick={handleSave}>
-              <Save className="h-4 w-4" />
-              Save
-            </Button>
-          )}
-          {saved && (
-            <span className="text-[11px] text-accent-hover font-bold">Saved</span>
-          )}
-        </div>
+        <Button size="sm" variant="outline" onClick={handleExportCSV}>
+          <Download className="h-4 w-4" />
+          Export
+        </Button>
       </div>
 
       <div className="relative animate-fade-up" style={{ animationDelay: "0.05s" }}>
@@ -221,15 +210,19 @@ export default function AdminUsersPage() {
                     {months.map((m) => {
                       const active = getStatus(user.id, m);
                       const hasPending = pendingChanges[user.id]?.[m] !== undefined;
+                      const isFuture = m > currentMonth;
                       return (
                         <td key={m} className="px-2 py-2.5 text-center">
                           <button
-                            onClick={() => handleToggle(user.id, m)}
+                            onClick={() => !isFuture && handleToggle(user.id, m)}
+                            disabled={isFuture}
                             className={cn(
                               "h-7 w-7 rounded-[8px] flex items-center justify-center transition-all",
-                              active
-                                ? "bg-accent-soft text-accent-hover hover:bg-accent/20"
-                                : "bg-card-border/20 text-card-border hover:bg-card-border/40",
+                              isFuture
+                                ? "bg-card-border/10 text-card-border/30 cursor-not-allowed"
+                                : active
+                                  ? "bg-accent-soft text-accent-hover hover:bg-accent/20"
+                                  : "bg-card-border/20 text-card-border hover:bg-card-border/40",
                               hasPending && "ring-2 ring-warning/50"
                             )}
                           >
@@ -245,10 +238,35 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
+      {/* Spacer so sticky bar doesn't overlap content */}
+      {hasChanges && <div className="h-16" />}
+
+      {/* Sticky save bar */}
       {hasChanges && (
-        <p className="text-[11px] text-warning-dark font-bold text-center">
-          You have unsaved changes. Click Save to apply.
-        </p>
+        <div className="fixed bottom-[72px] left-0 right-0 z-30 px-4 pb-3 animate-fade-up">
+          <div className="max-w-lg mx-auto flex items-center gap-3 rounded-[14px] bg-card border border-card-border shadow-[0_4px_20px_rgba(0,0,0,0.12)] px-4 py-3">
+            <p className="flex-1 text-[12px] font-semibold text-warning-dark">
+              You have unsaved changes
+            </p>
+            <Button size="sm" variant="outline" onClick={() => { setPendingChanges({}); }}>
+              Discard
+            </Button>
+            <Button size="sm" onClick={handleSave}>
+              <Save className="h-3.5 w-3.5" />
+              Save
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Saved toast */}
+      {saved && (
+        <div className="fixed bottom-[72px] left-0 right-0 z-30 px-4 pb-3 animate-fade-up">
+          <div className="max-w-lg mx-auto flex items-center justify-center gap-2 rounded-[14px] bg-accent-soft border border-accent/20 shadow-[0_4px_20px_rgba(0,0,0,0.12)] px-4 py-3">
+            <Check className="h-4 w-4 text-accent-hover" />
+            <p className="text-[12px] font-bold text-accent-hover">Changes saved</p>
+          </div>
+        </div>
       )}
     </div>
   );
