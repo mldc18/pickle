@@ -117,53 +117,60 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar animate-fade-up" style={{ animationDelay: "0.07s" }}>
-        {(["all", "member", "admin", "super_admin"] as const).map((r) => (
-          <button
-            key={r}
-            onClick={() => setRoleFilter(r)}
-            className={cn(
-              "inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border whitespace-nowrap transition-colors shrink-0",
-              roleFilter === r
-                ? "bg-accent-soft text-accent-hover border-accent/30"
-                : "bg-card text-muted border-card-border hover:border-accent/20"
-            )}
-          >
-            {r === "admin" && <Shield className="h-2.5 w-2.5" />}
-            {r === "super_admin" && <ShieldCheck className="h-2.5 w-2.5" />}
-            {r === "all" ? "All Roles" : r === "super_admin" ? "Super Admin" : r === "admin" ? "Admin" : "Member"}
-          </button>
-        ))}
-        <span className="text-card-border shrink-0">|</span>
-        {(["all", "paid", "unpaid"] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setPaymentFilter(s)}
-            className={cn(
-              "text-[10px] font-bold px-2 py-1 rounded-full border whitespace-nowrap transition-colors shrink-0",
-              paymentFilter === s
-                ? "bg-accent-soft text-accent-hover border-accent/30"
-                : "bg-card text-muted border-card-border hover:border-accent/20"
-            )}
-          >
-            {s === "all" ? "All Status" : s === "paid" ? "Paid" : "Unpaid"}
-          </button>
-        ))}
-        <span className="text-card-border shrink-0">|</span>
-        {(["all", "has_noshows", "clean"] as const).map((n) => (
-          <button
-            key={n}
-            onClick={() => setNoShowFilter(n)}
-            className={cn(
-              "text-[10px] font-bold px-2 py-1 rounded-full border whitespace-nowrap transition-colors shrink-0",
-              noShowFilter === n
-                ? "bg-accent-soft text-accent-hover border-accent/30"
-                : "bg-card text-muted border-card-border hover:border-accent/20"
-            )}
-          >
-            {n === "all" ? "No-Shows" : n === "has_noshows" ? "Has No-Shows" : "Clean"}
-          </button>
-        ))}
+      <div className="flex flex-col gap-2 animate-fade-up" style={{ animationDelay: "0.07s" }}>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-[1px] text-muted w-12 shrink-0">Role</span>
+          {(["all", "member", "admin", "super_admin"] as const).map((r) => (
+            <button
+              key={r}
+              onClick={() => setRoleFilter(r)}
+              className={cn(
+                "inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors",
+                roleFilter === r
+                  ? "bg-accent-soft text-accent-hover border-accent/30"
+                  : "bg-card text-muted border-card-border hover:border-accent/20"
+              )}
+            >
+              {r === "admin" && <Shield className="h-2.5 w-2.5" />}
+              {r === "super_admin" && <ShieldCheck className="h-2.5 w-2.5" />}
+              {r === "all" ? "All" : r === "super_admin" ? "Super Admin" : r === "admin" ? "Admin" : "Member"}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-[1px] text-muted w-12 shrink-0">Status</span>
+          {(["all", "paid", "unpaid"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setPaymentFilter(s)}
+              className={cn(
+                "text-[10px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors",
+                paymentFilter === s
+                  ? "bg-accent-soft text-accent-hover border-accent/30"
+                  : "bg-card text-muted border-card-border hover:border-accent/20"
+              )}
+            >
+              {s === "all" ? "All" : s === "paid" ? "Paid" : "Unpaid"}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-[1px] text-muted w-12 shrink-0">Shows</span>
+          {(["all", "has_noshows", "clean"] as const).map((n) => (
+            <button
+              key={n}
+              onClick={() => setNoShowFilter(n)}
+              className={cn(
+                "text-[10px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors",
+                noShowFilter === n
+                  ? "bg-accent-soft text-accent-hover border-accent/30"
+                  : "bg-card text-muted border-card-border hover:border-accent/20"
+              )}
+            >
+              {n === "all" ? "All" : n === "has_noshows" ? "Has No-Shows" : "Clean"}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="rounded-[16px] border border-card-border bg-card shadow-[0_1px_4px_rgba(0,0,0,0.04)] p-0 overflow-hidden animate-fade-up" style={{ animationDelay: "0.1s" }}>
