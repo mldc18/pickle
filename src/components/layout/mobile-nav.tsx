@@ -73,7 +73,6 @@ export function MobileNav() {
               ready={ready}
               userId={user.id}
               userFullName={user.fullName}
-              isAdmin={isAdmin}
               users={users}
               registerForGame={registerForGame}
               unregisterFromGame={unregisterFromGame}
@@ -128,7 +127,6 @@ function RegistrationAction({
   ready,
   userId,
   userFullName,
-  isAdmin,
   users,
   registerForGame,
   unregisterFromGame,
@@ -140,7 +138,6 @@ function RegistrationAction({
   ready: boolean;
   userId: string;
   userFullName: string;
-  isAdmin: boolean;
   users: AppContextLike["users"];
   registerForGame: AppContextLike["registerForGame"];
   unregisterFromGame: AppContextLike["unregisterFromGame"];
@@ -160,9 +157,9 @@ function RegistrationAction({
   const waitlisted = isWaitlisted(userId);
   const waitPos = getWaitlistPosition(userId);
 
-  // Admins and super_admins bypass the paid check via app-context row.
+  // All users must pay — no admin bypass.
   const currentUserRow = users.find((u) => u.id === userId);
-  const effectivePaid = isAdmin || (currentUserRow?.isPaid ?? false);
+  const effectivePaid = currentUserRow?.isPaid ?? false;
   const isBlocked = status === "blocked";
 
   const canRegister =
