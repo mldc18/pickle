@@ -6,7 +6,7 @@ import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, Plus, ShieldAlert, IdCard, Receipt, Trash2 } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, ShieldAlert, IdCard, Receipt, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminUserDetailPage({
@@ -16,7 +16,7 @@ export default function AdminUserDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { users, incrementNoShow, toggleAdmin, toggleSuperAdmin, deleteUser } = useApp();
+  const { users, gameDays, toggleNoShow, toggleAdmin, toggleSuperAdmin, deleteUser } = useApp();
   const { user: currentUser, isAdmin, isSuperAdmin } = useAuth();
   const user = users.find((u) => u.id === id);
   const [deleting, setDeleting] = useState(false);
@@ -32,6 +32,18 @@ export default function AdminUserDetailPage({
       </div>
     );
   }
+
+  // Build list of game dates this user registered for, with no-show status
+  const registeredGameDates = Object.entries(gameDays)
+    .filter(([, gd]) =>
+      gd.registeredPlayers.some((p) => p.userId === user.id) ||
+      gd.waitlist.some((p) => p.userId === user.id)
+    )
+    .map(([date, gd]) => ({
+      date,
+      isNoShow: gd.noShows.includes(user.id),
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   const fields = [
     { label: "Username", value: user.username, icon: User },
@@ -110,7 +122,8 @@ export default function AdminUserDetailPage({
               <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-accent-soft text-accent-hover">
                 <Receipt className="h-3.5 w-3.5" />
               </div>
-              <p className="text-[15px] font-bold">Payment Proof</p>
+              <p className="text-[15px] font-bold">Initial Payment Proof</p>
+              <p className="text-[10px] text-text-muted font-medium">Joined {new Date(user.createdAt + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
             </div>
             {user.paymentScreenshotUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -206,40 +219,55 @@ export default function AdminUserDetailPage({
         </div>
       )}
 
-      {/* No-Shows */}
+      {/* No-Shows & Game History */}
       <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.15s" }}>
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-warning-soft text-warning-dark shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[15px] font-bold">No-Shows</p>
-                <span className="text-[22px] font-extrabold">{user.noShowCount}</span>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-warning-soft text-warning-dark shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[15px] font-bold">Game Attendance</p>
+              <p className="text-[11px] text-text-muted font-medium">
+                {registeredGameDates.length} game{registeredGameDates.length !== 1 ? "s" : ""} registered
+                {user.noShowCount > 0 && <span className="text-warning-dark"> &middot; {user.noShowCount} no-show{user.noShowCount !== 1 ? "s" : ""}</span>}
+              </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="w-full" onClick={() => incrementNoShow(user.id)}>
-            <Plus className="h-4 w-4" />
-            Record No-Show (Today)
-          </Button>
-          {user.noShowDates.length > 0 && (
+          {registeredGameDates.length > 0 ? (
             <div className="border-t border-card-border pt-3 mt-1">
-              <p className="text-[10px] font-bold uppercase tracking-[1px] text-text-muted mb-2">No-Show History</p>
+              <p className="text-[10px] font-bold uppercase tracking-[1px] text-text-muted mb-2">Registered Games</p>
               <div className="flex flex-col gap-1.5">
-                {user.noShowDates.map((date) => {
+                {registeredGameDates.map(({ date, isNoShow }) => {
                   const d = new Date(date + "T00:00:00");
                   const formatted = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
                   return (
-                    <div key={date} className="flex items-center justify-between rounded-[8px] bg-warning-soft/50 px-3 py-2">
-                      <span className="text-[12px] font-semibold">{formatted}</span>
-                      <span className="text-[10px] font-bold text-warning-dark">Absent</span>
+                    <div
+                      key={date}
+                      className={`flex items-center justify-between rounded-[8px] px-3 py-2.5 ${isNoShow ? "bg-warning-soft/50" : "bg-accent-soft/30"}`}
+                    >
+                      <div>
+                        <span className="text-[12px] font-semibold">{formatted}</span>
+                        {isNoShow && <span className="ml-2 text-[10px] font-bold text-warning-dark">No-Show</span>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleNoShow(date, user.id)}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors ${
+                          isNoShow
+                            ? "bg-accent-soft text-accent-hover hover:bg-accent/20"
+                            : "bg-warning-soft text-warning-dark hover:bg-warning-soft/80"
+                        }`}
+                      >
+                        {isNoShow ? "Clear" : "Mark No-Show"}
+                      </button>
                     </div>
                   );
                 })}
               </div>
             </div>
+          ) : (
+            <p className="text-sm text-muted">No game registrations yet</p>
           )}
         </div>
       </div>
