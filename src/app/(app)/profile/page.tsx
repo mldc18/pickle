@@ -6,16 +6,14 @@ import { useApp } from "@/context/app-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut, ShieldAlert, IdCard, Pencil, X, Check, AlertCircle, Upload } from "lucide-react";
+import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut, ShieldAlert, Pencil, X, Check, AlertCircle } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
-  const { users, updateOwnPhoto, updateProfile, updateLaMareaId } = useApp();
+  const { users, updateOwnPhoto, updateProfile } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const laMareaIdInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadingId, setUploadingId] = useState(false);
 
   // Edit mode
   const [editing, setEditing] = useState(false);
@@ -42,7 +40,6 @@ export default function ProfilePage() {
   const currentMobile = liveRow?.mobile ?? user.mobile;
   const currentEmergencyName = liveRow?.emergencyContactName ?? user.emergencyContactName;
   const currentEmergencyNumber = liveRow?.emergencyContactNumber ?? user.emergencyContactNumber;
-  const currentLaMareaIdUrl = liveRow?.laMareaIdUrl ?? user.laMareaIdUrl;
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -281,51 +278,6 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* La Marea ID */}
-      <div className="animate-fade-up" style={{ animationDelay: "0.15s" }}>
-        <div className="flex items-center gap-2 mb-4">
-          <IdCard className="h-4 w-4 text-accent-hover" />
-          <span className="text-[11px] font-bold tracking-[2px] uppercase text-muted">La Marea ID</span>
-        </div>
-        {currentLaMareaIdUrl ? (
-          <div className="bg-card border border-card-border rounded-[12px] p-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={currentLaMareaIdUrl}
-              alt="La Marea ID"
-              className="w-full max-h-64 object-contain rounded-[8px]"
-            />
-          </div>
-        ) : (
-          <div className="bg-card border border-card-border rounded-[12px] p-4">
-            <p className="text-sm text-muted mb-3">No La Marea ID uploaded yet</p>
-            <input
-              ref={laMareaIdInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                setUploadingId(true);
-                await updateLaMareaId(file);
-                setUploadingId(false);
-                if (laMareaIdInputRef.current) laMareaIdInputRef.current.value = "";
-              }}
-            />
-            <Button
-              variant="outline"
-              className="w-full"
-              disabled={uploadingId}
-              onClick={() => laMareaIdInputRef.current?.click()}
-            >
-              <Upload className="h-4 w-4" />
-              {uploadingId ? "Uploading..." : "Upload La Marea ID"}
-            </Button>
-          </div>
-        )}
-      </div>
-
       {/* Registration Status */}
       <div className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
         <div className="flex items-center gap-2 mb-4">
@@ -356,7 +308,7 @@ export default function ProfilePage() {
                   >
                     <span className="text-[14px] font-semibold">{entry.monthName}</span>
                     <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${entry.paid ? "bg-accent-soft text-accent-hover" : "bg-destructive/10 text-destructive"}`}>
-                      {entry.paid ? "Paid" : "Unpaid"}
+                      {entry.paid ? "Active" : "Inactive"}
                     </span>
                   </div>
                 ))}
