@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CameraCapture } from "@/components/ui/camera-capture";
-import { AlertCircle, ArrowLeft, ArrowRight, UserPlus, Check, ScrollText, Upload, Image } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, UserPlus, Check, ScrollText } from "lucide-react";
 import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { registerStep1Schema, registerStep2Schema, registerStep3Schema } from "@/lib/schemas";
@@ -51,7 +51,7 @@ const RULES_TEXT = [
   },
   {
     title: "Fees",
-    text: "Registration fee: TWO HUNDRED PESOS (P200.00). Monthly membership fee: TWO HUNDRED PESOS (\u20B1200.00) for unlimited playing time for a month.",
+    text: "Monthly membership fee: TWO HUNDRED PESOS (\u20B1200.00) for unlimited playing time for a month.\n\nPlease pay via GCash to Star Mampusti (09985980219). Then send a payment screenshot to Star's Viber or Messenger.",
   },
   {
     title: "Game Rules",
@@ -96,21 +96,11 @@ export function RegisterForm() {
   const [profilePhoto, setProfilePhoto] = useState<Blob | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
-  const [paymentScreenshot, setPaymentScreenshot] = useState<Blob | null>(null);
-  const [paymentPreview, setPaymentPreview] = useState<string | null>(null);
-  const paymentInputRef = useRef<HTMLInputElement>(null);
-
-  const [laMareaId, setLaMareaId] = useState<Blob | null>(null);
-  const [laMareaIdPreview, setLaMareaIdPreview] = useState<string | null>(null);
-  const laMareaIdInputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     return () => {
       if (photoPreview) URL.revokeObjectURL(photoPreview);
-      if (paymentPreview) URL.revokeObjectURL(paymentPreview);
-      if (laMareaIdPreview) URL.revokeObjectURL(laMareaIdPreview);
     };
-  }, [photoPreview, paymentPreview, laMareaIdPreview]);
+  }, [photoPreview]);
 
   function validateStep1(): boolean {
     const parsed = registerStep1Schema.safeParse({ username, password, confirmPassword });
@@ -141,7 +131,7 @@ export function RegisterForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const parsed = registerStep3Schema.safeParse({ acceptedTerms, acceptedRules, profilePhoto, paymentScreenshot, laMareaId });
+    const parsed = registerStep3Schema.safeParse({ acceptedTerms, acceptedRules, profilePhoto });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Invalid input");
       return;
@@ -160,8 +150,6 @@ export function RegisterForm() {
       acceptedTerms,
       acceptedRules,
       profilePhoto: parsed.data.profilePhoto,
-      paymentScreenshot: parsed.data.paymentScreenshot,
-      laMareaId: parsed.data.laMareaId,
     });
     setSubmitting(false);
     if (result.ok) router.push("/dashboard");
@@ -194,22 +182,6 @@ export function RegisterForm() {
   function handleAcceptRules() {
     setAcceptedRules(true);
     setShowRules(false);
-  }
-
-  function handlePaymentFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (paymentPreview) URL.revokeObjectURL(paymentPreview);
-    setPaymentScreenshot(file);
-    setPaymentPreview(URL.createObjectURL(file));
-  }
-
-  function handleLaMareaIdFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (laMareaIdPreview) URL.revokeObjectURL(laMareaIdPreview);
-    setLaMareaId(file);
-    setLaMareaIdPreview(URL.createObjectURL(file));
   }
 
   const steps = [
@@ -301,90 +273,6 @@ export function RegisterForm() {
                   setPhotoPreview(null);
                 }}
               />
-            </div>
-
-            {/* Payment Screenshot */}
-            <div className="rounded-[8px] border border-card-border p-4">
-              <Label className="mb-2 block">Payment Screenshot</Label>
-              <p className="text-[11px] text-muted mb-3">Upload proof of registration fee payment (P200.00)</p>
-              <input
-                ref={paymentInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handlePaymentFile}
-              />
-              {paymentPreview ? (
-                <div className="flex flex-col items-center gap-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={paymentPreview}
-                    alt="Payment screenshot"
-                    className="w-full max-h-48 object-contain rounded-[8px] border border-card-border"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => paymentInputRef.current?.click()}
-                  >
-                    <Image className="h-3.5 w-3.5" />
-                    Change
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => paymentInputRef.current?.click()}
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload Screenshot
-                </Button>
-              )}
-            </div>
-
-            {/* La Marea ID */}
-            <div className="rounded-[8px] border border-card-border p-4">
-              <Label className="mb-2 block">La Marea ID</Label>
-              <p className="text-[11px] text-muted mb-3">Upload a photo of your La Marea ID</p>
-              <input
-                ref={laMareaIdInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleLaMareaIdFile}
-              />
-              {laMareaIdPreview ? (
-                <div className="flex flex-col items-center gap-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={laMareaIdPreview}
-                    alt="La Marea ID"
-                    className="w-full max-h-48 object-contain rounded-[8px] border border-card-border"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => laMareaIdInputRef.current?.click()}
-                  >
-                    <Image className="h-3.5 w-3.5" />
-                    Change
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => laMareaIdInputRef.current?.click()}
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload La Marea ID
-                </Button>
-              )}
             </div>
 
             {/* Waiver */}

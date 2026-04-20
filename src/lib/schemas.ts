@@ -114,8 +114,6 @@ export const registerStep3Schema = z.object({
   acceptedTerms: z.literal(true, { message: "You must accept the waiver" }),
   acceptedRules: z.literal(true, { message: "You must accept the rules & regulations" }),
   profilePhoto: z.instanceof(Blob, { message: "A profile photo is required" }),
-  paymentScreenshot: z.instanceof(Blob, { message: "Payment screenshot is required" }),
-  laMareaId: z.instanceof(Blob, { message: "La Marea ID photo is required" }),
 });
 
 /** Full registration payload — step1 (without confirmPassword) + step2 + step3. */
@@ -132,8 +130,6 @@ export const registrationFormSchema = z.object({
   acceptedTerms: z.boolean(),
   acceptedRules: z.boolean(),
   profilePhoto: z.instanceof(Blob),
-  paymentScreenshot: z.instanceof(Blob),
-  laMareaId: z.instanceof(Blob),
 });
 
 // ---------------------------------------------------------------------------
