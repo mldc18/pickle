@@ -74,7 +74,7 @@ export function RegistrationPanel() {
         </div>
       )}
 
-      {/* Unpaid Warning */}
+      {/* Inactive Warning */}
       {!effectivePaid && (
         <div className="flex items-start gap-2 text-[11px] leading-snug text-warning-dark bg-warning-soft rounded-[10px] px-3 py-2 border border-warning/20">
           <CreditCard className="h-3 w-3 shrink-0 mt-0.5" />

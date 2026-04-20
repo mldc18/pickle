@@ -48,8 +48,8 @@ export default function AdminDashboardPage() {
   }).length;
 
   const monthStats = [
-    { label: "Paid", value: paidThisMonth, icon: CreditCard, color: "text-accent-hover bg-accent-soft" },
-    { label: "Unpaid", value: unpaidThisMonth, icon: CreditCard, color: "text-destructive bg-destructive/10" },
+    { label: "Active", value: paidThisMonth, icon: CreditCard, color: "text-accent-hover bg-accent-soft" },
+    { label: "Inactive", value: unpaidThisMonth, icon: CreditCard, color: "text-destructive bg-destructive/10" },
     { label: "Registered", value: registeredThisMonth, icon: UserPlus, color: "text-accent-hover bg-accent-soft" },
   ];
 
@@ -151,7 +151,7 @@ export default function AdminDashboardPage() {
                     onClick={() => handleActivate(u.id)}
                   >
                     <CheckCircle className="h-3 w-3" />
-                    {activatingId === u.id ? "..." : "Mark as Paid"}
+                    {activatingId === u.id ? "..." : "Mark as Active"}
                   </Button>
                 </div>
               </div>

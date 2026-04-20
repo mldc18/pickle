@@ -80,7 +80,7 @@ export default function AdminUsersPage() {
         u.emergencyContactName || "",
         u.emergencyContactNumber || "",
         u.role,
-        u.isPaid ? "Paid" : "Unpaid",
+        u.isPaid ? "Active" : "Inactive",
         u.createdAt,
         u.laMareaIdUrl || "",
       ]);
@@ -150,7 +150,7 @@ export default function AdminUsersPage() {
                   : "bg-card text-muted border-card-border hover:border-accent/20"
               )}
             >
-              {s === "all" ? "All" : s === "paid" ? "Paid" : "Unpaid"}
+              {s === "all" ? "All" : s === "paid" ? "Active" : "Inactive"}
             </button>
           ))}
         </div>
@@ -205,7 +205,7 @@ export default function AdminUsersPage() {
                       </Link>
                       <div className="flex items-center gap-1 mt-0.5">
                         <Badge variant={user.isPaid ? "success" : "destructive"} className="text-[8px]">
-                          {user.isPaid ? "Paid" : "Unpaid"}
+                          {user.isPaid ? "Active" : "Inactive"}
                         </Badge>
                         {user.noShowCount > 0 && (
                           <Badge variant="warning" className="text-[8px]">
