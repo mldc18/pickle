@@ -161,9 +161,10 @@ function RegistrationAction({
   const currentUserRow = users.find((u) => u.id === userId);
   const effectivePaid = currentUserRow?.isPaid ?? false;
   const isBlocked = status === "blocked";
+  const isOutsideHours = status === "outside_hours";
 
   const canRegister =
-    !registered && !waitlisted && !isBlocked && effectivePaid;
+    !registered && !waitlisted && !isBlocked && !isOutsideHours && effectivePaid;
 
   function handleToggle() {
     if (registered || waitlisted) {
@@ -201,6 +202,18 @@ function RegistrationAction({
         }}
       >
         Waitlisted #{waitPos} — Tap to Leave
+      </button>
+    );
+  }
+
+  if (isOutsideHours) {
+    return (
+      <button
+        disabled
+        className="w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex flex-col items-center justify-center gap-0.5 opacity-50 cursor-not-allowed border-0 bg-card-border text-muted"
+      >
+        <span>Registration Closed</span>
+        <span className="text-[11px] font-semibold opacity-70">Open 12:00 PM – 7:30 PM</span>
       </button>
     );
   }
