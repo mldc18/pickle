@@ -6,7 +6,7 @@ import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, ShieldAlert, IdCard, Receipt, Trash2 } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, ShieldAlert, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminUserDetailPage({
@@ -113,49 +113,6 @@ export default function AdminUserDetailPage({
           </div>
         </div>
       </div>
-
-      {/* Payment Screenshot & La Marea ID — visible to all admins */}
-      {isAdmin && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 animate-fade-up" style={{ animationDelay: "0.07s" }}>
-          <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-accent-soft text-accent-hover">
-                <Receipt className="h-3.5 w-3.5" />
-              </div>
-              <p className="text-[15px] font-bold">Initial Payment Proof</p>
-              <p className="text-[10px] text-text-muted font-medium">Joined {new Date(user.createdAt + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
-            </div>
-            {user.paymentScreenshotUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.paymentScreenshotUrl}
-                alt="Payment screenshot"
-                className="w-full max-h-64 object-contain rounded-[8px] border border-card-border"
-              />
-            ) : (
-              <p className="text-sm text-muted">Not uploaded</p>
-            )}
-          </div>
-          <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-accent-soft text-accent-hover">
-                <IdCard className="h-3.5 w-3.5" />
-              </div>
-              <p className="text-[15px] font-bold">La Marea ID</p>
-            </div>
-            {user.laMareaIdUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.laMareaIdUrl}
-                alt="La Marea ID"
-                className="w-full max-h-64 object-contain rounded-[8px] border border-card-border"
-              />
-            ) : (
-              <p className="text-sm text-muted">Not uploaded</p>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Admin Role */}
       <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.1s" }}>

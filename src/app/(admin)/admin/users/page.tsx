@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { formatShortMonth, get6MonthRange, getMonthKey } from "@/lib/utils";
 import { Search, Check, Save, Download, Shield, ShieldCheck, Filter } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { shortName } from "@/lib/utils";
 import Link from "next/link";
 
 export default function AdminUsersPage() {
@@ -199,7 +198,7 @@ export default function AdminUsersPage() {
                   <tr key={user.id} className="border-b border-card-border/50 hover:bg-accent-soft/30 transition-colors">
                     <td className="sticky left-0 z-10 bg-card px-2.5 py-2.5 whitespace-nowrap max-w-[120px]">
                       <Link href={`/admin/users/${user.id}`} className="hover:text-accent-hover transition-colors text-[11px] font-bold truncate flex items-center gap-1">
-                        {shortName(user.firstName, user.lastName)}
+                        {user.fullName}
                         {user.role === "super_admin" && <ShieldCheck className="h-2.5 w-2.5 text-warning-dark shrink-0" />}
                         {user.role === "admin" && <Shield className="h-2.5 w-2.5 text-warning-dark shrink-0" />}
                       </Link>
