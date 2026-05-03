@@ -19,6 +19,9 @@ import {
   isBeforeCancellationDeadline,
 } from "@/lib/game-deadlines";
 
+const CANCEL_REGISTRATION_CONFIRMATION_MESSAGE =
+  "Are you sure you want to cancel? This action is irreversible.";
+
 type NavItem = {
   href: string;
   label: string;
@@ -184,6 +187,7 @@ function RegistrationAction({
   function handleToggle() {
     if (registered || waitlisted) {
       if (!cancellationOpen) return;
+      if (!window.confirm(CANCEL_REGISTRATION_CONFIRMATION_MESSAGE)) return;
       unregisterFromGame(userId);
     } else {
       registerForGame(userId, userFullName);
