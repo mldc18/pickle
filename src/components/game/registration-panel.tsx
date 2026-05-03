@@ -4,7 +4,6 @@ import { useAuth } from "@/context/auth-context";
 import { useApp } from "@/context/app-context";
 import { PlayerList } from "./player-list";
 import { formatFullDate } from "@/lib/utils";
-import { MAX_SLOTS } from "@/lib/constants";
 import {
   CANCELLATION_DEADLINE_LABEL,
   REGISTRATION_DEADLINE_LABEL,
@@ -19,7 +18,7 @@ export function RegistrationPanel() {
 
   const status = getRegistrationStatus();
   const filled = gameDay.registeredPlayers.length;
-  const fillPercent = Math.round((filled / MAX_SLOTS) * 100);
+  const fillPercent = Math.min(Math.round((filled / gameDay.capacity) * 100), 100);
   const isBlocked = status === "blocked";
 
   // Derive the current user's paid status from app-context (source of truth
@@ -56,7 +55,7 @@ export function RegistrationPanel() {
           <div className="text-[22px] font-extrabold">
             <span className="text-accent-hover">{filled}</span>
             <span className="text-text-muted mx-0.5">/</span>
-            <span className="text-text-muted">{MAX_SLOTS}</span>
+            <span className="text-text-muted">{gameDay.capacity}</span>
           </div>
         </div>
         <div className="w-full h-[5px] bg-card-border rounded-md overflow-hidden">

@@ -1,18 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
-import { Users, CreditCard, Trophy, Clock, ChevronLeft, ChevronRight, UserPlus, UserCheck, Eye, CheckCircle, Shield, ShieldCheck } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { normalizeCapacityInput } from "@/lib/capacity";
+import { CreditCard, Trophy, Clock, ChevronLeft, ChevronRight, UserPlus, UserCheck, Eye, CheckCircle, Shield, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { getMonthKey, shortName } from "@/lib/utils";
 import Link from "next/link";
 
 export default function AdminDashboardPage() {
-  const { users, gameDay, togglePayment } = useApp();
+  const { users, gameDay, togglePayment, defaultCapacity, updateDefaultCapacity } = useApp();
   const { isAdmin } = useAuth();
   const [monthOffset, setMonthOffset] = useState(0);
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [defaultCapacityDraft, setDefaultCapacityDraft] = useState(String(defaultCapacity));
+  const [capacitySaving, setCapacitySaving] = useState(false);
+  const [capacityMessage, setCapacityMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+
+  useEffect(() => {
+    setDefaultCapacityDraft(String(defaultCapacity));
+  }, [defaultCapacity]);
 
   const viewDate = new Date();
   viewDate.setMonth(viewDate.getMonth() - monthOffset);
@@ -30,6 +39,18 @@ export default function AdminDashboardPage() {
     setActivatingId(userId);
     await togglePayment(userId, currentMonth);
     setActivatingId(null);
+  }
+
+  async function handleDefaultCapacitySave() {
+    const nextCapacity = normalizeCapacityInput(defaultCapacityDraft);
+    setCapacitySaving(true);
+    const result = await updateDefaultCapacity(nextCapacity);
+    setCapacitySaving(false);
+    setCapacityMessage(
+      result.ok
+        ? { tone: "success", text: `Default capacity is now ${nextCapacity} players.` }
+        : { tone: "danger", text: result.error ?? "Capacity could not be saved." },
+    );
   }
 
   const paidThisMonth = users.filter((u) =>
@@ -56,6 +77,61 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-[21px] font-extrabold tracking-[-0.3px] animate-fade-up">Admin Dashboard</h1>
+
+      {/* Capacity */}
+      {isAdmin && (
+        <div className="rounded-[16px] border border-card-border bg-card p-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-accent-soft text-accent-hover shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+              <SlidersHorizontal className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[15px] font-bold">Player Capacity</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-text-muted">
+                    Default {defaultCapacity} · Today {gameDay.capacity} · Confirmed {gameDay.registeredPlayers.length}
+                  </p>
+                </div>
+                {gameDay.capacityOverride !== null && (
+                  <span className="rounded-full bg-warning-soft px-2 py-1 text-[9px] font-bold uppercase tracking-[0.7px] text-warning-dark">
+                    Date override
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3 flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  max={72}
+                  value={defaultCapacityDraft}
+                  onChange={(event) => setDefaultCapacityDraft(event.target.value)}
+                  className="h-10 max-w-[120px] text-sm"
+                  aria-label="Default max players"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleDefaultCapacitySave}
+                  disabled={capacitySaving}
+                >
+                  {capacitySaving ? "Saving" : "Save Default"}
+                </Button>
+              </div>
+
+              {capacityMessage && (
+                <p
+                  className={`mt-2 text-[11px] font-semibold ${
+                    capacityMessage.tone === "success" ? "text-accent-hover" : "text-destructive"
+                  }`}
+                >
+                  {capacityMessage.text}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Today */}
       <div className="animate-fade-up" style={{ animationDelay: "0.1s" }}>
