@@ -11,6 +11,7 @@ import {
 import { User, GameDay, BlockedDate } from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/client";
 import { MAX_SLOTS, REGISTRATION_OPEN_HOUR, REGISTRATION_OPEN_MINUTE, REGISTRATION_CLOSE_HOUR, REGISTRATION_CLOSE_MINUTE } from "@/lib/constants";
+import { isBeforeCancellationDeadline } from "@/lib/game-deadlines";
 import {
   getTodayDate,
   getMonthKey,
@@ -250,7 +251,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, today]);
 
   useEffect(() => {
-    fetchAll().finally(() => setReady(true));
+    let cancelled = false;
+
+    async function loadInitialState() {
+      await fetchAll();
+      if (!cancelled) {
+        setReady(true);
+      }
+    }
+
+    void loadInitialState();
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchAll]);
 
   const gameDay = gameDays[today] ?? { ...EMPTY_GAME_DAY, date: today };
@@ -320,6 +334,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const unregisterFromGame = useCallback(
     async (_userId: string) => {
+      if (!isBeforeCancellationDeadline()) {
+        return;
+      }
+
       const { error } = await supabase.rpc("unregister_from_game", { p_date: today });
       if (error) console.error("unregister_from_game failed", error);
       await fetchAll();

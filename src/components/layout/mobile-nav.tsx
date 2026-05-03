@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,6 +14,10 @@ import {
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/context/auth-context";
 import { useApp } from "@/context/app-context";
+import {
+  CANCELLATION_DEADLINE_LABEL,
+  isBeforeCancellationDeadline,
+} from "@/lib/game-deadlines";
 
 type NavItem = {
   href: string;
@@ -36,6 +41,7 @@ type NavItem = {
 export function MobileNav() {
   const pathname = usePathname();
   const { user, isAdmin } = useAuth();
+  const [now, setNow] = useState(() => new Date());
   const {
     ready,
     registerForGame,
@@ -46,6 +52,11 @@ export function MobileNav() {
     getRegistrationStatus,
     users,
   } = useApp();
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   if (!user) return null;
 
@@ -74,6 +85,7 @@ export function MobileNav() {
               userId={user.id}
               userFullName={user.fullName}
               users={users}
+              now={now}
               registerForGame={registerForGame}
               unregisterFromGame={unregisterFromGame}
               isRegistered={isRegistered}
@@ -128,6 +140,7 @@ function RegistrationAction({
   userId,
   userFullName,
   users,
+  now,
   registerForGame,
   unregisterFromGame,
   isRegistered,
@@ -139,6 +152,7 @@ function RegistrationAction({
   userId: string;
   userFullName: string;
   users: AppContextLike["users"];
+  now: Date;
   registerForGame: AppContextLike["registerForGame"];
   unregisterFromGame: AppContextLike["unregisterFromGame"];
   isRegistered: AppContextLike["isRegistered"];
@@ -156,6 +170,7 @@ function RegistrationAction({
   const registered = isRegistered(userId);
   const waitlisted = isWaitlisted(userId);
   const waitPos = getWaitlistPosition(userId);
+  const cancellationOpen = isBeforeCancellationDeadline(now);
 
   // All users must pay — no admin bypass.
   const currentUserRow = users.find((u) => u.id === userId);
@@ -168,6 +183,7 @@ function RegistrationAction({
 
   function handleToggle() {
     if (registered || waitlisted) {
+      if (!cancellationOpen) return;
       unregisterFromGame(userId);
     } else {
       registerForGame(userId, userFullName);
@@ -178,14 +194,20 @@ function RegistrationAction({
     return (
       <button
         onClick={handleToggle}
-        className="w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex items-center justify-center gap-2 transition-all cursor-pointer border-0"
+        disabled={!cancellationOpen}
+        className={cn(
+          "w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex items-center justify-center gap-2 transition-all border-0",
+          cancellationOpen ? "cursor-pointer" : "cursor-not-allowed opacity-60",
+        )}
         style={{
           background: "#FBBF24",
           color: "#111",
           boxShadow: "0 4px 20px rgba(251,191,36,0.3)",
         }}
       >
-        ✓ You&apos;re In! — Tap to Cancel
+        {cancellationOpen
+          ? "✓ You’re In! — Tap to Cancel"
+          : `You’re In — Cancellation closed at ${CANCELLATION_DEADLINE_LABEL}`}
       </button>
     );
   }
@@ -194,14 +216,20 @@ function RegistrationAction({
     return (
       <button
         onClick={handleToggle}
-        className="w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex items-center justify-center gap-2 transition-all cursor-pointer border-0"
+        disabled={!cancellationOpen}
+        className={cn(
+          "w-full py-4 rounded-[14px] font-extrabold text-[17px] tracking-[0.3px] flex items-center justify-center gap-2 transition-all border-0",
+          cancellationOpen ? "cursor-pointer" : "cursor-not-allowed opacity-60",
+        )}
         style={{
           background: "#FBBF24",
           color: "#111",
           boxShadow: "0 4px 20px rgba(251,191,36,0.3)",
         }}
       >
-        Waitlisted #{waitPos} — Tap to Leave
+        {cancellationOpen
+          ? `Waitlisted #${waitPos} — Tap to Leave`
+          : `Waitlisted #${waitPos} — Cancellation closed at ${CANCELLATION_DEADLINE_LABEL}`}
       </button>
     );
   }

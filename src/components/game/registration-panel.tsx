@@ -5,6 +5,10 @@ import { useApp } from "@/context/app-context";
 import { PlayerList } from "./player-list";
 import { formatFullDate } from "@/lib/utils";
 import { MAX_SLOTS } from "@/lib/constants";
+import {
+  CANCELLATION_DEADLINE_LABEL,
+  REGISTRATION_DEADLINE_LABEL,
+} from "@/lib/game-deadlines";
 import { Ban, CreditCard } from "lucide-react";
 
 export function RegistrationPanel() {
@@ -40,6 +44,9 @@ export function RegistrationPanel() {
             10:00 PM
           </span>
         </div>
+        <p className="mt-3 text-[12px] font-semibold leading-snug text-muted">
+          Cancel by {CANCELLATION_DEADLINE_LABEL}. Register by {REGISTRATION_DEADLINE_LABEL}.
+        </p>
       </div>
 
       {/* Progress Block */}
