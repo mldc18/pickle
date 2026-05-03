@@ -10,8 +10,14 @@ import {
 } from "react";
 import { User, GameDay, BlockedDate } from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/client";
-import { MAX_SLOTS, REGISTRATION_OPEN_HOUR, REGISTRATION_OPEN_MINUTE, REGISTRATION_CLOSE_HOUR, REGISTRATION_CLOSE_MINUTE } from "@/lib/constants";
+import { REGISTRATION_OPEN_HOUR, REGISTRATION_OPEN_MINUTE, REGISTRATION_CLOSE_HOUR, REGISTRATION_CLOSE_MINUTE } from "@/lib/constants";
 import { isBeforeCancellationDeadline } from "@/lib/game-deadlines";
+import {
+  DEFAULT_MAX_PLAYERS,
+  normalizeCapacityInput,
+  resolveGameCapacity,
+  validateCapacityChange,
+} from "@/lib/capacity";
 import {
   getTodayDate,
   getMonthKey,
@@ -23,6 +29,7 @@ interface AppContextType {
   users: User[];
   gameDay: GameDay;
   gameDays: Record<string, GameDay>;
+  defaultCapacity: number;
   blockedDates: BlockedDate[];
   registerForGame: (userId: string, fullName: string) => Promise<"registered" | "waitlisted" | "full" | "blocked" | "unpaid" | "closed">;
   unregisterFromGame: (userId: string) => Promise<void>;
@@ -33,6 +40,9 @@ interface AppContextType {
   togglePayment: (userId: string, month: string) => Promise<void>;
   blockDate: (date: string, message: string) => Promise<void>;
   unblockDate: (date: string) => Promise<void>;
+  updateDefaultCapacity: (capacity: number) => Promise<{ ok: boolean; error?: string }>;
+  updateDateCapacity: (date: string, capacity: number) => Promise<{ ok: boolean; error?: string }>;
+  clearDateCapacity: (date: string) => Promise<{ ok: boolean; error?: string }>;
   toggleNoShow: (date: string, userId: string) => Promise<void>;
   incrementNoShow: (userId: string) => Promise<void>;
   toggleAdmin: (userId: string) => Promise<void>;
@@ -77,7 +87,13 @@ type UserRow = {
 
 type PaymentRow = { user_id: string; month: string; paid: boolean };
 type NoShowRow = { game_date: string; user_id: string };
-type GameDayRow = { date: string; is_cancelled: boolean; cancel_message: string | null };
+type GameDayRow = {
+  date: string;
+  is_cancelled: boolean;
+  cancel_message: string | null;
+  capacity_override: number | null;
+};
+type AppSettingRow = { value: number | string | null };
 type RegistrationRow = {
   game_date: string;
   user_id: string;
@@ -92,6 +108,8 @@ const EMPTY_GAME_DAY: GameDay = {
   date: "",
   isBlocked: false,
   blockMessage: null,
+  capacity: DEFAULT_MAX_PLAYERS,
+  capacityOverride: null,
   registeredPlayers: [],
   waitlist: [],
   noShows: [],
@@ -103,6 +121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [users, setUsers] = useState<User[]>([]);
   const [gameDays, setGameDays] = useState<Record<string, GameDay>>({});
+  const [defaultCapacity, setDefaultCapacity] = useState(DEFAULT_MAX_PLAYERS);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [ready, setReady] = useState(false);
 
@@ -111,14 +130,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // -------------------------------------------------------------------------
 
   const fetchAll = useCallback(async () => {
-    const [usersRes, paymentsRes, noShowsRes, gameDaysRes, regsRes] =
+    const [usersRes, paymentsRes, noShowsRes, gameDaysRes, regsRes, capacitySettingRes] =
       await Promise.all([
         supabase.from("users").select("*"),
         supabase.from("monthly_payments").select("*"),
         supabase.from("game_no_shows").select("*"),
         supabase.from("game_days").select("*"),
         supabase.from("game_registrations").select("*").order("position", { ascending: true }),
+        supabase.from("app_settings").select("value").eq("key", "default_game_capacity").maybeSingle(),
       ]);
+
+    const nextDefaultCapacity = normalizeCapacityInput(
+      ((capacitySettingRes.data ?? null) as AppSettingRow | null)?.value,
+    );
+    setDefaultCapacity(nextDefaultCapacity);
 
     const userRows = (usersRes.data ?? []) as UserRow[];
     const paymentRows = (paymentsRes.data ?? []) as PaymentRow[];
@@ -207,6 +232,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     for (const date of allDates) {
       const gd = gameDayRows.find((g) => g.date === date);
       const regs = regsByDate.get(date) ?? [];
+      const capacityOverride = gd?.capacity_override ?? null;
       const registered = regs
         .filter((r) => r.status === "registered")
         .sort((a, b) => a.position - b.position)
@@ -235,6 +261,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         date,
         isBlocked: gd?.is_cancelled ?? false,
         blockMessage: gd?.cancel_message ?? null,
+        capacity: resolveGameCapacity({
+          defaultCapacity: nextDefaultCapacity,
+          dateCapacityOverride: capacityOverride,
+        }),
+        capacityOverride,
         registeredPlayers: registered,
         waitlist,
         noShows: noShowsByDate.get(date) ?? [],
@@ -267,7 +298,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [fetchAll]);
 
-  const gameDay = gameDays[today] ?? { ...EMPTY_GAME_DAY, date: today };
+  const gameDay = gameDays[today] ?? {
+    ...EMPTY_GAME_DAY,
+    date: today,
+    capacity: defaultCapacity,
+  };
 
   // -------------------------------------------------------------------------
   // Queries
@@ -386,6 +421,101 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await fetchAll();
     },
     [supabase, fetchAll],
+  );
+
+  const updateDefaultCapacity = useCallback(
+    async (capacity: number): Promise<{ ok: boolean; error?: string }> => {
+      const nextCapacity = normalizeCapacityInput(capacity);
+      const overloadedDay = Object.values(gameDays).find(
+        (candidate) =>
+          candidate.date >= today &&
+          candidate.capacityOverride === null &&
+          candidate.registeredPlayers.length > nextCapacity,
+      );
+
+      if (overloadedDay) {
+        return validateCapacityChange(nextCapacity, overloadedDay.registeredPlayers.length);
+      }
+
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert({
+          key: "default_game_capacity",
+          value: nextCapacity,
+          updated_at: new Date().toISOString(),
+        });
+      if (error) return { ok: false, error: error.message };
+
+      const { error: rebalanceError } = await supabase.rpc("rebalance_game_registrations", {
+        p_date: today,
+      });
+      if (rebalanceError) console.error("rebalance_game_registrations failed", rebalanceError);
+
+      await fetchAll();
+      return { ok: true };
+    },
+    [supabase, gameDays, today, fetchAll],
+  );
+
+  const updateDateCapacity = useCallback(
+    async (date: string, capacity: number): Promise<{ ok: boolean; error?: string }> => {
+      const nextCapacity = normalizeCapacityInput(capacity);
+      const existing = gameDays[date];
+      const validation = validateCapacityChange(
+        nextCapacity,
+        existing?.registeredPlayers.length ?? 0,
+      );
+      if (!validation.ok) return validation;
+
+      const { error } = await supabase
+        .from("game_days")
+        .upsert({
+          date,
+          is_cancelled: existing?.isBlocked ?? false,
+          cancel_message: existing?.blockMessage ?? null,
+          capacity_override: nextCapacity,
+        });
+      if (error) return { ok: false, error: error.message };
+
+      const { error: rebalanceError } = await supabase.rpc("rebalance_game_registrations", {
+        p_date: date,
+      });
+      if (rebalanceError) console.error("rebalance_game_registrations failed", rebalanceError);
+
+      await fetchAll();
+      return { ok: true };
+    },
+    [supabase, gameDays, fetchAll],
+  );
+
+  const clearDateCapacity = useCallback(
+    async (date: string): Promise<{ ok: boolean; error?: string }> => {
+      const existing = gameDays[date];
+      const validation = validateCapacityChange(
+        defaultCapacity,
+        existing?.registeredPlayers.length ?? 0,
+      );
+      if (!validation.ok) return validation;
+
+      const { error } = await supabase
+        .from("game_days")
+        .upsert({
+          date,
+          is_cancelled: existing?.isBlocked ?? false,
+          cancel_message: existing?.blockMessage ?? null,
+          capacity_override: null,
+        });
+      if (error) return { ok: false, error: error.message };
+
+      const { error: rebalanceError } = await supabase.rpc("rebalance_game_registrations", {
+        p_date: date,
+      });
+      if (rebalanceError) console.error("rebalance_game_registrations failed", rebalanceError);
+
+      await fetchAll();
+      return { ok: true };
+    },
+    [supabase, gameDays, defaultCapacity, fetchAll],
   );
 
   const toggleNoShow = useCallback(
@@ -555,10 +685,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [supabase, fetchAll],
   );
 
-  // MAX_SLOTS is referenced in type signatures via the schema; also re-export
-  // here as a silent no-op so the import isn't tree-shaken as unused.
-  void MAX_SLOTS;
-
   return (
     <AppContext.Provider
       value={{
@@ -566,6 +692,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         users,
         gameDay,
         gameDays,
+        defaultCapacity,
         blockedDates,
         registerForGame,
         unregisterFromGame,
@@ -576,6 +703,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         togglePayment,
         blockDate,
         unblockDate,
+        updateDefaultCapacity,
+        updateDateCapacity,
+        clearDateCapacity,
         toggleNoShow,
         incrementNoShow,
         toggleAdmin,

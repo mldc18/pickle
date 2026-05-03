@@ -8,14 +8,27 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/cn";
-import { ChevronLeft, ChevronRight, Ban, Lock, Unlock, UserX, UserCheck } from "lucide-react";
+import { normalizeCapacityInput } from "@/lib/capacity";
+import { ChevronLeft, ChevronRight, Ban, Lock, Unlock, UserX, UserCheck, SlidersHorizontal, RotateCcw } from "lucide-react";
 
 export default function CalendarPage() {
   const { isAdmin } = useAuth();
-  const { blockedDates, blockDate, unblockDate, getGameDay, toggleNoShow } = useApp();
+  const {
+    blockedDates,
+    blockDate,
+    unblockDate,
+    getGameDay,
+    toggleNoShow,
+    defaultCapacity,
+    updateDateCapacity,
+    clearDateCapacity,
+  } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [blockReason, setBlockReason] = useState("");
+  const [capacityDraft, setCapacityDraft] = useState(String(defaultCapacity));
+  const [capacitySaving, setCapacitySaving] = useState(false);
+  const [capacityFeedback, setCapacityFeedback] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -61,6 +74,11 @@ export default function CalendarPage() {
     return gd ? gd.registeredPlayers.length : undefined;
   }
 
+  function getCapacity(day: number): number {
+    const gd = getGameDay(getDateStr(day));
+    return gd?.capacity ?? defaultCapacity;
+  }
+
   function handleBlock() {
     if (selectedDay && blockReason.trim()) {
       blockDate(getDateStr(selectedDay), blockReason.trim());
@@ -72,6 +90,41 @@ export default function CalendarPage() {
     if (selectedDay) {
       unblockDate(getDateStr(selectedDay));
     }
+  }
+
+  function handleDaySelect(day: number) {
+    if (selectedDay === day) {
+      setSelectedDay(null);
+      return;
+    }
+
+    const gd = getGameDay(getDateStr(day));
+    setCapacityDraft(String(gd?.capacity ?? defaultCapacity));
+    setCapacityFeedback(null);
+    setSelectedDay(day);
+  }
+
+  async function handleSaveCapacity(dateStr: string) {
+    const nextCapacity = normalizeCapacityInput(capacityDraft);
+    setCapacitySaving(true);
+    const result = await updateDateCapacity(dateStr, nextCapacity);
+    setCapacitySaving(false);
+    setCapacityFeedback(
+      result.ok
+        ? { tone: "success", text: `Capacity for this date is now ${nextCapacity}.` }
+        : { tone: "danger", text: result.error ?? "Capacity could not be saved." },
+    );
+  }
+
+  async function handleClearCapacity(dateStr: string) {
+    setCapacitySaving(true);
+    const result = await clearDateCapacity(dateStr);
+    setCapacitySaving(false);
+    setCapacityFeedback(
+      result.ok
+        ? { tone: "success", text: `This date now uses the default capacity of ${defaultCapacity}.` }
+        : { tone: "danger", text: result.error ?? "Capacity override could not be cleared." },
+    );
   }
 
   return (
@@ -113,11 +166,12 @@ export default function CalendarPage() {
             const playable = isPlayable(day);
             const selected = selectedDay === day;
             const count = getPlayerCount(day);
+            const capacity = getCapacity(day);
 
             return (
               <button
                 key={day}
-                onClick={() => setSelectedDay(selected ? null : day)}
+                onClick={() => handleDaySelect(day)}
                 className={cn(
                   "relative flex flex-col items-center justify-center rounded-[8px] text-sm transition-all h-12",
                   past && !todayDay && "text-text-muted",
@@ -133,7 +187,7 @@ export default function CalendarPage() {
                     "text-[8px] leading-none font-bold",
                     selected ? "text-white/70" : past ? "text-text-muted" : "text-muted"
                   )}>
-                    {count}p
+                    {count}/{capacity}
                   </span>
                 )}
               </button>
@@ -166,6 +220,9 @@ export default function CalendarPage() {
         const todayDay = isToday(selectedDay);
         const past = isPast(selectedDay);
         const gd = getGameDay(dateStr);
+        const effectiveCapacity = gd?.capacity ?? defaultCapacity;
+        const capacityOverride = gd?.capacityOverride ?? null;
+        const confirmedCount = gd?.registeredPlayers.length ?? 0;
         const dateLabel = new Date(year, month, selectedDay).toLocaleDateString("en-US", {
           weekday: "long",
           month: "long",
@@ -177,7 +234,9 @@ export default function CalendarPage() {
             <div className="flex items-center justify-between mb-3">
               <p className="text-[15px] font-bold">{dateLabel}</p>
               <div className="flex items-center gap-2">
-                {gd && <span className="text-[11px] font-semibold text-muted">{gd.registeredPlayers.length} players</span>}
+                <span className="text-[11px] font-semibold text-muted">
+                  {confirmedCount}/{effectiveCapacity} players
+                </span>
                 {blocked ? (
                   <Badge variant="destructive">Closed</Badge>
                 ) : past ? (
@@ -256,7 +315,58 @@ export default function CalendarPage() {
 
             {/* Admin controls for future dates */}
             {isAdmin && !past && (
-              <div className="border-t border-card-border pt-3">
+              <div className="border-t border-card-border pt-3 space-y-4">
+                <div className="rounded-[12px] border border-card-border bg-background p-3">
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4 text-accent-hover" />
+                    <div>
+                      <p className="text-[12px] font-bold">Max players</p>
+                      <p className="text-[10px] font-semibold text-muted">
+                        {capacityOverride === null ? `Using default ${defaultCapacity}` : `Override ${capacityOverride}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={Math.max(1, confirmedCount)}
+                      max={72}
+                      value={capacityDraft}
+                      onChange={(event) => setCapacityDraft(event.target.value)}
+                      className="h-8 text-xs"
+                      aria-label="Max players for selected date"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => handleSaveCapacity(dateStr)}
+                      disabled={capacitySaving}
+                    >
+                      Save
+                    </Button>
+                    {capacityOverride !== null && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleClearCapacity(dateStr)}
+                        disabled={capacitySaving}
+                        aria-label="Use default capacity"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {capacityFeedback && (
+                    <p
+                      className={cn(
+                        "mt-2 text-[10px] font-bold",
+                        capacityFeedback.tone === "success" ? "text-accent-hover" : "text-destructive",
+                      )}
+                    >
+                      {capacityFeedback.text}
+                    </p>
+                  )}
+                </div>
+
                 {blocked ? (
                   <Button variant="outline" size="sm" className="w-full" onClick={handleUnblock}>
                     <Unlock className="h-4 w-4" />

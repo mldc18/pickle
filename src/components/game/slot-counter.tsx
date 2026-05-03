@@ -1,17 +1,18 @@
-import { MAX_SLOTS } from "@/lib/constants";
+import { DEFAULT_MAX_PLAYERS } from "@/lib/capacity";
 import { Progress } from "@/components/ui/progress";
 import { Users } from "lucide-react";
 
 interface SlotCounterProps {
   filled: number;
+  capacity?: number;
 }
 
-export function SlotCounter({ filled }: SlotCounterProps) {
-  const pct = Math.min((filled / MAX_SLOTS) * 100, 100);
+export function SlotCounter({ filled, capacity = DEFAULT_MAX_PLAYERS }: SlotCounterProps) {
+  const pct = Math.min((filled / capacity) * 100, 100);
   const color =
-    filled >= MAX_SLOTS
+    filled >= capacity
       ? "bg-destructive"
-      : filled >= 20
+      : filled >= Math.floor(capacity * 0.84)
         ? "bg-warning"
         : "bg-accent";
 
@@ -23,7 +24,7 @@ export function SlotCounter({ filled }: SlotCounterProps) {
           Slots
         </span>
         <span className="font-mono font-semibold text-base">
-          {filled} / {MAX_SLOTS}
+          {filled} / {capacity}
         </span>
       </div>
       <Progress value={pct} indicatorClassName={color} />

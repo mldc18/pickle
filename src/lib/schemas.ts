@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { MAX_SLOTS } from "./constants";
 
 // ---------------------------------------------------------------------------
 // Primitives / shared
@@ -76,7 +75,9 @@ export const gameDaySchema = z.object({
   date: dateStringSchema,
   isBlocked: z.boolean(),
   blockMessage: z.string().nullable(),
-  registeredPlayers: z.array(registeredPlayerSchema).max(MAX_SLOTS),
+  capacity: z.number().int().positive(),
+  capacityOverride: z.number().int().positive().nullable(),
+  registeredPlayers: z.array(registeredPlayerSchema),
   waitlist: z.array(registeredPlayerSchema),
   noShows: z.array(z.string()),
 });
