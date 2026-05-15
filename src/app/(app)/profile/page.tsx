@@ -6,6 +6,7 @@ import { useApp } from "@/context/app-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { StorageImage } from "@/components/ui/storage-image";
 import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut, ShieldAlert, Pencil, X, Check, AlertCircle } from "lucide-react";
 
 export default function ProfilePage() {
@@ -143,10 +144,11 @@ export default function ProfilePage() {
             aria-label="Change profile photo"
           >
             {displayPhoto ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <StorageImage
                 src={displayPhoto}
                 alt={user.fullName}
+                width={160}
+                height={160}
                 className="w-full h-full object-cover"
               />
             ) : (

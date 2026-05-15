@@ -5,6 +5,7 @@ import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StorageImage } from "@/components/ui/storage-image";
 import { normalizeCapacityInput } from "@/lib/capacity";
 import { CreditCard, Trophy, Clock, ChevronLeft, ChevronRight, UserPlus, UserCheck, Eye, CheckCircle, Shield, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { getMonthKey, shortName } from "@/lib/utils";
@@ -197,9 +198,14 @@ export default function AdminDashboardPage() {
                 className="flex items-center gap-3 rounded-[12px] border border-card-border bg-card px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-accent-soft text-accent-hover text-sm font-extrabold overflow-hidden shrink-0">
-                  {u.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={u.avatarUrl} alt={u.fullName} className="w-full h-full object-cover" />
+                  {u.photoUrl ?? u.avatarUrl ? (
+                    <StorageImage
+                      src={u.photoUrl ?? u.avatarUrl}
+                      alt={u.fullName}
+                      width={96}
+                      height={96}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <>{u.firstName[0]}{u.lastName[0]}</>
                   )}

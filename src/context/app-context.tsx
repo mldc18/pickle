@@ -9,6 +9,14 @@ import {
   useMemo,
 } from "react";
 import { User, GameDay, BlockedDate } from "@/lib/schemas";
+import { useAuth } from "@/context/auth-context";
+import {
+  GAME_DAY_COLUMNS,
+  GAME_NO_SHOW_COLUMNS,
+  GAME_REGISTRATION_COLUMNS,
+  MONTHLY_PAYMENT_COLUMNS,
+  getAppDataQueryScope,
+} from "@/lib/app-data-query-scope";
 import { createClient } from "@/lib/supabase/client";
 import { REGISTRATION_OPEN_HOUR, REGISTRATION_OPEN_MINUTE, REGISTRATION_CLOSE_HOUR, REGISTRATION_CLOSE_MINUTE } from "@/lib/constants";
 import { isBeforeCancellationDeadline } from "@/lib/game-deadlines";
@@ -23,6 +31,10 @@ import {
   getMonthKey,
   getLast12Months,
 } from "@/lib/utils";
+import {
+  STORAGE_IMAGE_UPLOADS,
+  prepareStorageImageUpload,
+} from "@/lib/storage-images";
 
 interface AppContextType {
   ready: boolean;
@@ -118,6 +130,8 @@ const EMPTY_GAME_DAY: GameDay = {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
   const today = useMemo(() => getTodayDate(), []);
+  const { user: currentUser, isAdmin } = useAuth();
+  const currentUserId = currentUser?.id ?? null;
 
   const [users, setUsers] = useState<User[]>([]);
   const [gameDays, setGameDays] = useState<Record<string, GameDay>>({});
@@ -130,13 +144,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // -------------------------------------------------------------------------
 
   const fetchAll = useCallback(async () => {
+    if (!currentUserId) {
+      setUsers([]);
+      setGameDays({});
+      setBlockedDates([]);
+      return;
+    }
+
+    const queryScope = getAppDataQueryScope({
+      isAdmin,
+      userId: currentUserId,
+    });
+
+    let paymentsQuery = supabase
+      .from("monthly_payments")
+      .select(MONTHLY_PAYMENT_COLUMNS);
+    if (queryScope.paymentUserId) {
+      paymentsQuery = paymentsQuery.eq("user_id", queryScope.paymentUserId);
+    }
+
+    let noShowsQuery = supabase
+      .from("game_no_shows")
+      .select(GAME_NO_SHOW_COLUMNS);
+    if (queryScope.noShowUserId) {
+      noShowsQuery = noShowsQuery.eq("user_id", queryScope.noShowUserId);
+    }
+
     const [usersRes, paymentsRes, noShowsRes, gameDaysRes, regsRes, capacitySettingRes] =
       await Promise.all([
-        supabase.from("users").select("*"),
-        supabase.from("monthly_payments").select("*"),
-        supabase.from("game_no_shows").select("*"),
-        supabase.from("game_days").select("*"),
-        supabase.from("game_registrations").select("*").order("position", { ascending: true }),
+        supabase.from("users").select(queryScope.userColumns),
+        paymentsQuery,
+        noShowsQuery,
+        supabase.from("game_days").select(GAME_DAY_COLUMNS),
+        supabase
+          .from("game_registrations")
+          .select(GAME_REGISTRATION_COLUMNS)
+          .order("position", { ascending: true }),
         supabase.from("app_settings").select("value").eq("key", "default_game_capacity").maybeSingle(),
       ]);
 
@@ -145,11 +188,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
     setDefaultCapacity(nextDefaultCapacity);
 
-    const userRows = (usersRes.data ?? []) as UserRow[];
-    const paymentRows = (paymentsRes.data ?? []) as PaymentRow[];
-    const noShowRows = (noShowsRes.data ?? []) as NoShowRow[];
-    const gameDayRows = (gameDaysRes.data ?? []) as GameDayRow[];
-    const regRows = (regsRes.data ?? []) as RegistrationRow[];
+    const userRows = (usersRes.data ?? []) as unknown as UserRow[];
+    const paymentRows = (paymentsRes.data ?? []) as unknown as PaymentRow[];
+    const noShowRows = (noShowsRes.data ?? []) as unknown as NoShowRow[];
+    const gameDayRows = (gameDaysRes.data ?? []) as unknown as GameDayRow[];
+    const regRows = (regsRes.data ?? []) as unknown as RegistrationRow[];
 
     // --- Users (derived: paymentHistory, isPaid, noShowCount) ------------
     const last12 = getLast12Months();
@@ -279,7 +322,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .filter((g) => g.is_cancelled && g.cancel_message)
         .map((g) => ({ date: g.date, message: g.cancel_message! })),
     );
-  }, [supabase, today]);
+  }, [supabase, today, currentUserId, isAdmin]);
 
   useEffect(() => {
     let cancelled = false;
@@ -573,17 +616,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Path layout: photos/{uid}/display-{timestamp}.{ext}
       // New filename per upload so we don't need to bust a CDN cache,
       // and the old object stays until the user (or a sweeper) removes it.
-      const mime = file.type || "image/jpeg";
-      const ext =
-        mime === "image/png" ? "png"
-          : mime === "image/webp" ? "webp"
-          : mime === "image/heic" || mime === "image/heif" ? "heic"
-          : "jpg";
-      const path = `${uid}/display-${Date.now()}.${ext}`;
+      const upload = await prepareStorageImageUpload(file, STORAGE_IMAGE_UPLOADS.profile);
+      const path = `${uid}/display-${Date.now()}.${upload.extension}`;
 
       const { error: uploadError } = await supabase.storage
         .from("photos")
-        .upload(path, file, { contentType: mime, upsert: false });
+        .upload(path, upload.blob, {
+          contentType: upload.contentType,
+          cacheControl: upload.cacheControl,
+          upsert: false,
+        });
       if (uploadError) {
         console.error("updateOwnPhoto upload failed", uploadError);
         return null;
@@ -656,10 +698,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const uid = authData.user?.id;
       if (!uid) return { ok: false, error: "Not authenticated" };
 
-      const path = `${uid}/la-marea-id.jpg`;
+      const upload = await prepareStorageImageUpload(file, STORAGE_IMAGE_UPLOADS.document);
+      const path = `${uid}/la-marea-id.${upload.extension}`;
       const { error: uploadError } = await supabase.storage
         .from("la-marea-ids")
-        .upload(path, file, { contentType: "image/jpeg", upsert: true });
+        .upload(path, upload.blob, {
+          contentType: upload.contentType,
+          cacheControl: upload.cacheControl,
+          upsert: true,
+        });
       if (uploadError) return { ok: false, error: uploadError.message };
 
       const { data: urlData } = supabase.storage.from("la-marea-ids").getPublicUrl(path);

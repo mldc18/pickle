@@ -6,6 +6,7 @@ import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StorageImage } from "@/components/ui/storage-image";
 import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, ShieldAlert, Trash2 } from "lucide-react";
 import Link from "next/link";
 
@@ -55,6 +56,7 @@ export default function AdminUserDetailPage({
     { label: "Member Since", value: user.createdAt, icon: Calendar },
   ];
 
+  const displayPhoto = user.photoUrl ?? user.avatarUrl;
   const isUserAdmin = user.role === "admin" || user.role === "super_admin";
   const isUserSuperAdmin = user.role === "super_admin";
 
@@ -71,9 +73,14 @@ export default function AdminUserDetailPage({
         <div className="p-5">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-[13px] bg-accent-soft text-accent-hover text-xl font-extrabold shadow-[0_2px_8px_rgba(0,0,0,0.08)] overflow-hidden">
-              {user.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.avatarUrl} alt={user.fullName} className="w-full h-full object-cover" />
+              {displayPhoto ? (
+                <StorageImage
+                  src={displayPhoto}
+                  alt={user.fullName}
+                  width={128}
+                  height={128}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <>{user.firstName[0]}{user.lastName[0]}</>
               )}

@@ -3,6 +3,7 @@
 import { RegisteredPlayer } from "@/lib/schemas";
 import { cn } from "@/lib/cn";
 import { Clock, UserCheck } from "lucide-react";
+import { StorageImage } from "@/components/ui/storage-image";
 
 interface PlayerListProps {
   players: RegisteredPlayer[];
@@ -69,10 +70,11 @@ function PlayerRow({
         style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
       >
         {player.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <StorageImage
             src={player.avatarUrl}
             alt={player.fullName}
+            width={96}
+            height={96}
             className="w-full h-full object-cover"
           />
         ) : (

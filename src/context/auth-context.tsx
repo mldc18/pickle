@@ -9,7 +9,12 @@ import {
   useMemo,
 } from "react";
 import { User, AuthState, RegistrationFormData } from "@/lib/schemas";
+import { AUTH_USER_COLUMNS } from "@/lib/app-data-query-scope";
 import { createClient } from "@/lib/supabase/client";
+import {
+  STORAGE_IMAGE_UPLOADS,
+  prepareStorageImageUpload,
+} from "@/lib/storage-images";
 
 interface AuthContextType extends AuthState {
   login: (usernameOrEmail: string, password: string) => Promise<boolean>;
@@ -18,6 +23,27 @@ interface AuthContextType extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+type ProfileRow = {
+  id: string;
+  username: string;
+  full_name: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  mobile: string;
+  address: string;
+  role: "member" | "admin" | "super_admin";
+  avatar_url: string;
+  photo_url: string | null;
+  payment_screenshot_url?: string | null;
+  la_marea_id_url?: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_number: string | null;
+  accepted_terms: boolean;
+  accepted_rules: boolean;
+  created_at: string;
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
@@ -28,38 +54,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (userId: string) => {
       const { data, error } = await supabase
         .from("users")
-        .select("*")
+        .select(AUTH_USER_COLUMNS)
         .eq("id", userId)
         .single();
       if (error || !data) {
         setUser(null);
         return;
       }
+      const profile = data as unknown as ProfileRow;
       setUser({
-        id: data.id,
-        username: data.username,
-        fullName: data.full_name,
-        firstName: data.first_name,
-        lastName: data.last_name,
-        email: data.email,
-        mobile: data.mobile,
-        address: data.address,
-        role: data.role,
-        avatarUrl: data.avatar_url,
-        photoUrl: data.photo_url ?? null,
-        paymentScreenshotUrl: data.payment_screenshot_url ?? null,
-        laMareaIdUrl: data.la_marea_id_url ?? null,
-        emergencyContactName: data.emergency_contact_name ?? "",
-        emergencyContactNumber: data.emergency_contact_number ?? "",
-        acceptedRules: data.accepted_rules ?? false,
+        id: profile.id,
+        username: profile.username,
+        fullName: profile.full_name,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        email: profile.email,
+        mobile: profile.mobile,
+        address: profile.address,
+        role: profile.role,
+        avatarUrl: profile.avatar_url,
+        photoUrl: profile.photo_url ?? null,
+        paymentScreenshotUrl: profile.payment_screenshot_url ?? null,
+        laMareaIdUrl: profile.la_marea_id_url ?? null,
+        emergencyContactName: profile.emergency_contact_name ?? "",
+        emergencyContactNumber: profile.emergency_contact_number ?? "",
+        acceptedRules: profile.accepted_rules ?? false,
         // isPaid / paymentHistory / noShowCount are derived — populated later
         // once app-context is wired to Supabase. For now, defaults.
         isPaid: false,
         paymentHistory: [],
         noShowCount: 0,
         noShowDates: [],
-        acceptedTerms: data.accepted_terms,
-        createdAt: new Date(data.created_at).toISOString().split("T")[0],
+        acceptedTerms: profile.accepted_terms,
+        createdAt: new Date(profile.created_at).toISOString().split("T")[0],
       });
     },
     [supabase],
@@ -151,11 +178,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Upload profile photo to storage and update avatar_url on the profile row.
-      const path = `${newUserId}/avatar.jpg`;
+      const avatarUpload = await prepareStorageImageUpload(
+        data.profilePhoto,
+        STORAGE_IMAGE_UPLOADS.profile,
+      );
+      const path = `${newUserId}/avatar.${avatarUpload.extension}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, data.profilePhoto, {
-          contentType: "image/jpeg",
+        .upload(path, avatarUpload.blob, {
+          contentType: avatarUpload.contentType,
+          cacheControl: avatarUpload.cacheControl,
           upsert: true,
         });
       if (uploadError) {
