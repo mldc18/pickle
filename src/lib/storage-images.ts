@@ -37,7 +37,7 @@ export function getSupabaseStorageImageUrl(
 ): string {
   const parsed = parsePublicStorageUrl(src);
   if (!parsed) return src;
-  if (options.delivery !== "transform") return src;
+  if (options.delivery === "original") return src;
 
   const { url, objectPath } = parsed;
   url.pathname = `${PUBLIC_RENDER_PREFIX}${objectPath}`;
