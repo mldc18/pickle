@@ -9,10 +9,21 @@ import {
 } from "./storage-images";
 
 describe("storage image optimization", () => {
-  it("builds a small Supabase render URL for public storage images", () => {
+  it("keeps public storage URLs direct by default", () => {
+    const url = getSupabaseStorageImageUrl(
+      "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.webp",
+      { width: 96, height: 96, quality: 70 },
+    );
+
+    expect(url).toBe(
+      "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.webp",
+    );
+  });
+
+  it("builds a small Supabase render URL when transformations are explicitly enabled", () => {
     const url = getSupabaseStorageImageUrl(
       "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.jpg",
-      { width: 96, height: 96, quality: 70 },
+      { width: 96, height: 96, quality: 70, delivery: "transform" },
     );
 
     expect(url).toBe(
@@ -31,8 +42,8 @@ describe("storage image optimization", () => {
 
   it("keeps resized uploads within the target square while preserving aspect ratio", () => {
     expect(resolveImageDimensions(4000, 2000, STORAGE_IMAGE_UPLOADS.profile.maxDimension)).toEqual({
-      width: 768,
-      height: 384,
+      width: 512,
+      height: 256,
     });
     expect(resolveImageDimensions(300, 200, STORAGE_IMAGE_UPLOADS.profile.maxDimension)).toEqual({
       width: 300,
@@ -40,11 +51,11 @@ describe("storage image optimization", () => {
     });
   });
 
-  it("uses JPEG upload options with a long browser cache for user photos", () => {
+  it("uses WebP upload options with a long browser cache for user photos", () => {
     expect(getStorageImageUploadOptions("image/png")).toEqual({
-      contentType: "image/jpeg",
+      contentType: "image/webp",
       cacheControl: String(STORAGE_IMAGE_CACHE_SECONDS),
-      extension: "jpg",
+      extension: "webp",
     });
   });
 });

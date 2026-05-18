@@ -1,7 +1,16 @@
 import { type NextRequest } from "next/server";
+import {
+  getMaintenanceModeConfig,
+  getMaintenanceResponse,
+} from "@/lib/maintenance-mode";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function proxy(request: NextRequest) {
+  const maintenance = getMaintenanceModeConfig(process.env);
+  if (maintenance.enabled) {
+    return getMaintenanceResponse(maintenance);
+  }
+
   return await updateSession(request);
 }
 

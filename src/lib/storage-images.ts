@@ -2,7 +2,7 @@ export const STORAGE_IMAGE_CACHE_SECONDS = 60 * 60 * 24 * 365;
 
 export const STORAGE_IMAGE_UPLOADS = {
   profile: {
-    maxDimension: 768,
+    maxDimension: 512,
     quality: 0.72,
   },
   document: {
@@ -16,6 +16,7 @@ type StorageImageTransformOptions = {
   height?: number;
   quality?: number;
   resize?: "cover" | "contain" | "fill";
+  delivery?: "original" | "transform";
 };
 
 type PreparedStorageImageUpload = {
@@ -36,6 +37,7 @@ export function getSupabaseStorageImageUrl(
 ): string {
   const parsed = parsePublicStorageUrl(src);
   if (!parsed) return src;
+  if (options.delivery !== "transform") return src;
 
   const { url, objectPath } = parsed;
   url.pathname = `${PUBLIC_RENDER_PREFIX}${objectPath}`;
@@ -76,9 +78,9 @@ export function getStorageImageUploadOptions(sourceType: string): Omit<PreparedS
   void sourceType;
 
   return {
-    contentType: "image/jpeg",
+    contentType: "image/webp",
     cacheControl: String(STORAGE_IMAGE_CACHE_SECONDS),
-    extension: "jpg",
+    extension: "webp",
   };
 }
 

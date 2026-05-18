@@ -8,6 +8,7 @@ import {
   useCallback,
   useMemo,
 } from "react";
+import { usePathname } from "next/navigation";
 import { User, GameDay, BlockedDate } from "@/lib/schemas";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -15,7 +16,10 @@ import {
   GAME_NO_SHOW_COLUMNS,
   GAME_REGISTRATION_COLUMNS,
   MONTHLY_PAYMENT_COLUMNS,
+  ROSTER_USER_COLUMNS,
   getAppDataQueryScope,
+  getGameDataQueryScope,
+  getRosterUserIdsForQuery,
 } from "@/lib/app-data-query-scope";
 import { createClient } from "@/lib/supabase/client";
 import { REGISTRATION_OPEN_HOUR, REGISTRATION_OPEN_MINUTE, REGISTRATION_CLOSE_HOUR, REGISTRATION_CLOSE_MINUTE } from "@/lib/constants";
@@ -113,6 +117,7 @@ type RegistrationRow = {
   position: number;
   registered_at: string;
 };
+type RosterUserRow = Pick<UserRow, "id" | "full_name" | "avatar_url" | "photo_url">;
 
 // ---------------------------------------------------------------------------
 
@@ -130,6 +135,7 @@ const EMPTY_GAME_DAY: GameDay = {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
   const today = useMemo(() => getTodayDate(), []);
+  const pathname = usePathname();
   const { user: currentUser, isAdmin } = useAuth();
   const currentUserId = currentUser?.id ?? null;
 
@@ -155,6 +161,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isAdmin,
       userId: currentUserId,
     });
+    const gameDataScope = getGameDataQueryScope({
+      isAdmin,
+      pathname,
+      today,
+    });
 
     let paymentsQuery = supabase
       .from("monthly_payments")
@@ -170,16 +181,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       noShowsQuery = noShowsQuery.eq("user_id", queryScope.noShowUserId);
     }
 
+    const usersQuery = supabase.from("users").select(queryScope.userColumns);
+    const scopedUsersQuery = isAdmin ? usersQuery : usersQuery.eq("id", currentUserId);
+    let gameDaysQuery = supabase.from("game_days").select(GAME_DAY_COLUMNS);
+    let registrationsQuery = supabase
+      .from("game_registrations")
+      .select(GAME_REGISTRATION_COLUMNS)
+      .order("position", { ascending: true });
+
+    if (gameDataScope.gameDate) {
+      gameDaysQuery = gameDaysQuery.eq("date", gameDataScope.gameDate);
+      registrationsQuery = registrationsQuery.eq("game_date", gameDataScope.gameDate);
+    }
+
     const [usersRes, paymentsRes, noShowsRes, gameDaysRes, regsRes, capacitySettingRes] =
       await Promise.all([
-        supabase.from("users").select(queryScope.userColumns),
+        scopedUsersQuery,
         paymentsQuery,
         noShowsQuery,
-        supabase.from("game_days").select(GAME_DAY_COLUMNS),
-        supabase
-          .from("game_registrations")
-          .select(GAME_REGISTRATION_COLUMNS)
-          .order("position", { ascending: true }),
+        gameDaysQuery,
+        registrationsQuery,
         supabase.from("app_settings").select("value").eq("key", "default_game_capacity").maybeSingle(),
       ]);
 
@@ -193,6 +214,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const noShowRows = (noShowsRes.data ?? []) as unknown as NoShowRow[];
     const gameDayRows = (gameDaysRes.data ?? []) as unknown as GameDayRow[];
     const regRows = (regsRes.data ?? []) as unknown as RegistrationRow[];
+    const knownUserIds = new Set(userRows.map((u) => u.id));
+    const rosterUserIds = getRosterUserIdsForQuery({
+      isAdmin,
+      today,
+      registrations: regRows,
+    }).filter((id) => !knownUserIds.has(id));
+    let rosterUserRows: RosterUserRow[] = [];
+
+    if (rosterUserIds.length > 0) {
+      const { data: rosterUsers, error: rosterUsersError } = await supabase
+        .from("users")
+        .select(ROSTER_USER_COLUMNS)
+        .in("id", rosterUserIds);
+      if (rosterUsersError) {
+        console.error("roster users fetch failed", rosterUsersError);
+      }
+      rosterUserRows = (rosterUsers ?? []) as unknown as RosterUserRow[];
+    }
 
     // --- Users (derived: paymentHistory, isPaid, noShowCount) ------------
     const last12 = getLast12Months();
@@ -248,7 +287,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // (photo_url) and fall back to the immutable registration selfie
     // (avatar_url) when the user hasn't uploaded one yet.
     const userInfoById = new Map(
-      userRows.map((u) => [
+      [...userRows, ...rosterUserRows].map((u) => [
         u.id,
         { fullName: u.full_name, avatarUrl: u.photo_url ?? u.avatar_url },
       ]),
@@ -322,7 +361,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .filter((g) => g.is_cancelled && g.cancel_message)
         .map((g) => ({ date: g.date, message: g.cancel_message! })),
     );
-  }, [supabase, today, currentUserId, isAdmin]);
+  }, [supabase, today, currentUserId, isAdmin, pathname]);
 
   useEffect(() => {
     let cancelled = false;
