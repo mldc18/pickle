@@ -9,20 +9,29 @@ import {
 } from "./storage-images";
 
 describe("storage image optimization", () => {
-  it("keeps public storage URLs direct for display-sized images", () => {
+  it("keeps WebP public storage URLs direct for display-sized images", () => {
+    const url = getSupabaseStorageImageUrl(
+      "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.webp",
+      { width: 96, height: 96, quality: 70 },
+    );
+
+    expect(url).toBe(
+      "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.webp",
+    );
+  });
+
+  it("does not return non-WebP Supabase storage URLs for rendering", () => {
     const url = getSupabaseStorageImageUrl(
       "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.jpg",
       { width: 96, height: 96, quality: 70 },
     );
 
-    expect(url).toBe(
-      "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.jpg",
-    );
+    expect(url).toBe("");
   });
 
   it("leaves non-storage images unchanged", () => {
-    expect(getSupabaseStorageImageUrl("/lampa-logo.jpg", { width: 96, height: 96 })).toBe(
-      "/lampa-logo.jpg",
+    expect(getSupabaseStorageImageUrl("/lampa-logo.webp", { width: 96, height: 96 })).toBe(
+      "/lampa-logo.webp",
     );
     expect(getSupabaseStorageImageUrl("blob:https://app.local/photo", { width: 96 })).toBe(
       "blob:https://app.local/photo",

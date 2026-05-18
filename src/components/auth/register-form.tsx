@@ -199,7 +199,7 @@ export function RegisterForm() {
         <div className="flex justify-center mb-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/lampa-logo.jpg"
+            src="/lampa-logo.webp"
             alt="LAMPA — La Marea Pickleball Association"
             className="h-24 w-24 rounded-full object-cover"
           />

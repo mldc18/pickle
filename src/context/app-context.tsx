@@ -655,7 +655,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Path layout: photos/{uid}/display-{timestamp}.{ext}
       // New filename per upload so we don't need to bust a CDN cache,
       // and the old object stays until the user (or a sweeper) removes it.
-      const upload = await prepareStorageImageUpload(file, STORAGE_IMAGE_UPLOADS.profile);
+      let upload: Awaited<ReturnType<typeof prepareStorageImageUpload>>;
+      try {
+        upload = await prepareStorageImageUpload(file, STORAGE_IMAGE_UPLOADS.profile);
+      } catch (conversionError) {
+        console.error("updateOwnPhoto conversion failed", conversionError);
+        return null;
+      }
       const path = `${uid}/display-${Date.now()}.${upload.extension}`;
 
       const { error: uploadError } = await supabase.storage
@@ -737,7 +743,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const uid = authData.user?.id;
       if (!uid) return { ok: false, error: "Not authenticated" };
 
-      const upload = await prepareStorageImageUpload(file, STORAGE_IMAGE_UPLOADS.document);
+      let upload: Awaited<ReturnType<typeof prepareStorageImageUpload>>;
+      try {
+        upload = await prepareStorageImageUpload(file, STORAGE_IMAGE_UPLOADS.document);
+      } catch (conversionError) {
+        return {
+          ok: false,
+          error: conversionError instanceof Error
+            ? conversionError.message
+            : "Image conversion failed. Please try another image.",
+        };
+      }
       const path = `${uid}/la-marea-id.${upload.extension}`;
       const { error: uploadError } = await supabase.storage
         .from("la-marea-ids")

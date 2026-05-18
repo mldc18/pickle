@@ -79,7 +79,7 @@ export function getMaintenanceResponse(config: Omit<MaintenanceConfig, "enabled"
   </head>
   <body>
     <main>
-      <img src="/lampa-logo.jpg" alt="LAMPA" />
+      <img src="/lampa-logo.webp" alt="LAMPA" />
       <h1>${title}</h1>
       <p>${message}</p>
     </main>

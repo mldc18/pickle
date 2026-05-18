@@ -151,6 +151,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const nameParts = data.fullName.trim().split(/\s+/);
       const firstName = nameParts[0];
       const lastName = nameParts.slice(1).join(" ") || nameParts[0];
+      let avatarUpload: Awaited<ReturnType<typeof prepareStorageImageUpload>>;
+
+      try {
+        avatarUpload = await prepareStorageImageUpload(
+          data.profilePhoto,
+          STORAGE_IMAGE_UPLOADS.profile,
+        );
+      } catch (conversionError) {
+        return {
+          ok: false as const,
+          error: conversionError instanceof Error
+            ? conversionError.message
+            : "Photo conversion failed. Please try another image.",
+        };
+      }
 
       const { data: signUpData, error } = await supabase.auth.signUp({
         email: data.email,
@@ -178,10 +193,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Upload profile photo to storage and update avatar_url on the profile row.
-      const avatarUpload = await prepareStorageImageUpload(
-        data.profilePhoto,
-        STORAGE_IMAGE_UPLOADS.profile,
-      );
       const path = `${newUserId}/avatar.${avatarUpload.extension}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")

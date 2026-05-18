@@ -26,11 +26,14 @@ type PreparedStorageImageUpload = {
 
 type StorageImageUploadPreset = (typeof STORAGE_IMAGE_UPLOADS)[keyof typeof STORAGE_IMAGE_UPLOADS];
 
+const PUBLIC_STORAGE_PREFIX = "/storage/v1/object/public/";
+
 export function getSupabaseStorageImageUrl(
   src: string,
   options: StorageImageTransformOptions,
 ): string {
   void options;
+  if (isSupabasePublicStorageUrl(src) && !isWebpUrl(src)) return "";
   return src;
 }
 
@@ -72,10 +75,7 @@ export async function prepareStorageImageUpload(
   const optimizedOptions = getStorageImageUploadOptions(file.type);
 
   if (!canResizeImageInBrowser(file)) {
-    return {
-      blob: file,
-      ...getOriginalUploadOptions(file.type),
-    };
+    throw new Error("This browser cannot convert images to WebP. Please try a current browser.");
   }
 
   try {
@@ -92,7 +92,7 @@ export async function prepareStorageImageUpload(
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       bitmap.close();
-      return { blob: file, ...getOriginalUploadOptions(file.type) };
+      throw new Error("Could not prepare the image for WebP upload.");
     }
 
     ctx.drawImage(bitmap, 0, 0, width, height);
@@ -100,18 +100,16 @@ export async function prepareStorageImageUpload(
 
     const blob = await canvasToBlob(canvas, optimizedOptions.contentType, preset.quality);
     if (!blob) {
-      return { blob: file, ...getOriginalUploadOptions(file.type) };
+      throw new Error("Could not convert the image to WebP.");
     }
 
     return {
       blob,
       ...optimizedOptions,
     };
-  } catch {
-    return {
-      blob: file,
-      ...getOriginalUploadOptions(file.type),
-    };
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error("Could not convert the image to WebP.");
   }
 }
 
@@ -124,21 +122,26 @@ function canResizeImageInBrowser(file: Blob): boolean {
   );
 }
 
-function getOriginalUploadOptions(sourceType: string): Omit<PreparedStorageImageUpload, "blob"> {
-  const contentType = sourceType || "image/jpeg";
-  return {
-    contentType,
-    cacheControl: String(STORAGE_IMAGE_CACHE_SECONDS),
-    extension: extensionForContentType(contentType),
-  };
+function isSupabasePublicStorageUrl(src: string): boolean {
+  try {
+    const url = new URL(src);
+    return (
+      url.protocol === "https:" &&
+      url.hostname.endsWith(".supabase.co") &&
+      url.pathname.startsWith(PUBLIC_STORAGE_PREFIX)
+    );
+  } catch {
+    return false;
+  }
 }
 
-function extensionForContentType(contentType: string): string {
-  if (contentType === "image/png") return "png";
-  if (contentType === "image/webp") return "webp";
-  if (contentType === "image/heic") return "heic";
-  if (contentType === "image/heif") return "heif";
-  return "jpg";
+function isWebpUrl(src: string): boolean {
+  try {
+    const url = new URL(src, "https://app.local");
+    return url.pathname.toLowerCase().endsWith(".webp");
+  } catch {
+    return false;
+  }
 }
 
 function canvasToBlob(

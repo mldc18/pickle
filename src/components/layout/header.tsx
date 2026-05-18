@@ -9,7 +9,7 @@ export function Header() {
         <Link href="/dashboard" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/lampa-logo.jpg"
+            src="/lampa-logo.webp"
             alt="LAMPA"
             className="h-9 w-9 rounded-full object-cover"
           />

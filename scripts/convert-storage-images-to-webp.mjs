@@ -66,6 +66,7 @@ const summary = {
   scanned: 0,
   planned: 0,
   converted: 0,
+  reused: 0,
   skipped: 0,
   failed: 0,
   updatedRows: 0,
@@ -85,6 +86,7 @@ for (const bucket of buckets) {
   }
 
   const objects = await listObjects(bucket);
+  const objectPaths = new Set(objects.map((object) => object.path));
   for (const object of objects) {
     summary.scanned += 1;
     if (!isConvertibleObject(object)) {
@@ -102,36 +104,42 @@ for (const bucket of buckets) {
     summary.planned += 1;
     const sourceUrl = getPublicUrl(bucket, sourcePath);
     const webpUrl = getPublicUrl(bucket, webpPath);
-    console.log(`${apply ? "Converting" : "Would convert"} ${bucket}/${sourcePath} -> ${webpPath}`);
+    const webpExists = objectPaths.has(webpPath);
+    console.log(`${apply ? (webpExists && !overwriteWebp ? "Reusing" : "Converting") : "Would convert"} ${bucket}/${sourcePath} -> ${webpPath}`);
 
     if (!apply) continue;
 
     try {
-      const buffer = await downloadObject(bucket, sourcePath);
-      const webpBuffer = await sharp(buffer)
-        .rotate()
-        .resize({
-          width: preset.maxDimension,
-          height: preset.maxDimension,
-          fit: "inside",
-          withoutEnlargement: true,
-        })
-        .webp({ quality: preset.quality })
-        .toBuffer();
+      if (webpExists && !overwriteWebp) {
+        summary.reused += 1;
+      } else {
+        const buffer = await downloadObject(bucket, sourcePath);
+        const webpBuffer = await sharp(buffer)
+          .rotate()
+          .resize({
+            width: preset.maxDimension,
+            height: preset.maxDimension,
+            fit: "inside",
+            withoutEnlargement: true,
+          })
+          .webp({ quality: preset.quality })
+          .toBuffer();
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(webpPath, webpBuffer, {
-          contentType: "image/webp",
-          cacheControl: String(STORAGE_IMAGE_CACHE_SECONDS),
-          upsert: overwriteWebp,
-        });
+        const { error: uploadError } = await supabase.storage
+          .from(bucket)
+          .upload(webpPath, webpBuffer, {
+            contentType: "image/webp",
+            cacheControl: String(STORAGE_IMAGE_CACHE_SECONDS),
+            upsert: overwriteWebp,
+          });
 
-      if (uploadError) {
-        throw uploadError;
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        summary.converted += 1;
       }
 
-      summary.converted += 1;
       summary.updatedRows += await updateUserUrls(sourceUrl, webpUrl);
 
       if (deleteOriginals) {

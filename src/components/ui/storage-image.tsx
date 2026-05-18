@@ -31,6 +31,8 @@ export function StorageImage({
     setCurrentSrc(optimizedSrc);
   }, [optimizedSrc]);
 
+  if (!currentSrc) return null;
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -42,7 +44,7 @@ export function StorageImage({
       decoding="async"
       className={className}
       onError={() => {
-        if (currentSrc !== src) setCurrentSrc(src);
+        setCurrentSrc("");
       }}
     />
   );
