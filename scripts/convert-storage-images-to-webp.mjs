@@ -114,7 +114,7 @@ for (const bucket of buckets) {
         summary.reused += 1;
       } else {
         const buffer = await downloadObject(bucket, sourcePath);
-        const webpBuffer = await sharp(buffer)
+        const webpBuffer = await sharp(buffer, { failOn: "none" })
           .rotate()
           .resize({
             width: preset.maxDimension,
@@ -125,17 +125,7 @@ for (const bucket of buckets) {
           .webp({ quality: preset.quality })
           .toBuffer();
 
-        const { error: uploadError } = await supabase.storage
-          .from(bucket)
-          .upload(webpPath, webpBuffer, {
-            contentType: "image/webp",
-            cacheControl: String(STORAGE_IMAGE_CACHE_SECONDS),
-            upsert: overwriteWebp,
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
+        await uploadObject(bucket, webpPath, webpBuffer);
 
         summary.converted += 1;
       }
@@ -143,8 +133,7 @@ for (const bucket of buckets) {
       summary.updatedRows += await updateUserUrls(sourceUrl, webpUrl);
 
       if (deleteOriginals) {
-        const { error: removeError } = await supabase.storage.from(bucket).remove([sourcePath]);
-        if (removeError) throw removeError;
+        await removeObject(bucket, sourcePath);
         summary.deletedOriginals += 1;
       }
     } catch (error) {
@@ -227,9 +216,31 @@ function toWebpPath(objectPath) {
 }
 
 async function downloadObject(bucket, objectPath) {
-  const { data, error } = await supabase.storage.from(bucket).download(objectPath);
-  if (error) throw error;
-  return Buffer.from(await data.arrayBuffer());
+  return withRetries(`download ${bucket}/${objectPath}`, async () => {
+    const { data, error } = await supabase.storage.from(bucket).download(objectPath);
+    if (error) throw error;
+    return Buffer.from(await data.arrayBuffer());
+  });
+}
+
+async function uploadObject(bucket, objectPath, buffer) {
+  return withRetries(`upload ${bucket}/${objectPath}`, async () => {
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(objectPath, buffer, {
+        contentType: "image/webp",
+        cacheControl: String(STORAGE_IMAGE_CACHE_SECONDS),
+        upsert: overwriteWebp,
+      });
+    if (error) throw error;
+  });
+}
+
+async function removeObject(bucket, objectPath) {
+  return withRetries(`remove ${bucket}/${objectPath}`, async () => {
+    const { error } = await supabase.storage.from(bucket).remove([objectPath]);
+    if (error) throw error;
+  });
 }
 
 function getPublicUrl(bucket, objectPath) {
@@ -239,14 +250,35 @@ function getPublicUrl(bucket, objectPath) {
 async function updateUserUrls(sourceUrl, webpUrl) {
   let updated = 0;
   for (const column of URL_COLUMNS) {
-    const { count, error } = await supabase
-      .from("users")
-      .update({ [column]: webpUrl }, { count: "exact" })
-      .eq(column, sourceUrl);
-    if (error) throw error;
-    updated += count ?? 0;
+    const count = await withRetries(`update users.${column}`, async () => {
+      const { count: updatedCount, error } = await supabase
+        .from("users")
+        .update({ [column]: webpUrl }, { count: "exact" })
+        .eq(column, sourceUrl);
+      if (error) throw error;
+      return updatedCount ?? 0;
+    });
+    updated += count;
   }
   return updated;
+}
+
+async function withRetries(label, operation, attempts = 4) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      await sleep(500 * attempt);
+    }
+  }
+  throw new Error(`${label} failed after ${attempts} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function printHelp() {
