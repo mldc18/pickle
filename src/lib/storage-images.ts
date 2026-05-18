@@ -15,8 +15,6 @@ type StorageImageTransformOptions = {
   width?: number;
   height?: number;
   quality?: number;
-  resize?: "cover" | "contain" | "fill";
-  delivery?: "original" | "transform";
 };
 
 type PreparedStorageImageUpload = {
@@ -28,29 +26,12 @@ type PreparedStorageImageUpload = {
 
 type StorageImageUploadPreset = (typeof STORAGE_IMAGE_UPLOADS)[keyof typeof STORAGE_IMAGE_UPLOADS];
 
-const PUBLIC_OBJECT_PREFIX = "/storage/v1/object/public/";
-const PUBLIC_RENDER_PREFIX = "/storage/v1/render/image/public/";
-
 export function getSupabaseStorageImageUrl(
   src: string,
   options: StorageImageTransformOptions,
 ): string {
-  const parsed = parsePublicStorageUrl(src);
-  if (!parsed) return src;
-  if (options.delivery === "original") return src;
-
-  const { url, objectPath } = parsed;
-  url.pathname = `${PUBLIC_RENDER_PREFIX}${objectPath}`;
-  url.search = "";
-
-  if (options.width) url.searchParams.set("width", String(options.width));
-  if (options.height) url.searchParams.set("height", String(options.height));
-  if (options.width && options.height) {
-    url.searchParams.set("resize", options.resize ?? "cover");
-  }
-  url.searchParams.set("quality", String(options.quality ?? 70));
-
-  return url.toString();
+  void options;
+  return src;
 }
 
 export function resolveImageDimensions(
@@ -132,29 +113,6 @@ export async function prepareStorageImageUpload(
       ...getOriginalUploadOptions(file.type),
     };
   }
-}
-
-function parsePublicStorageUrl(src: string): { url: URL; objectPath: string } | null {
-  let url: URL;
-  try {
-    url = new URL(src);
-  } catch {
-    return null;
-  }
-
-  if (url.protocol !== "https:" || !url.hostname.endsWith(".supabase.co")) {
-    return null;
-  }
-
-  if (url.pathname.startsWith(PUBLIC_OBJECT_PREFIX)) {
-    return { url, objectPath: url.pathname.slice(PUBLIC_OBJECT_PREFIX.length) };
-  }
-
-  if (url.pathname.startsWith(PUBLIC_RENDER_PREFIX)) {
-    return { url, objectPath: url.pathname.slice(PUBLIC_RENDER_PREFIX.length) };
-  }
-
-  return null;
 }
 
 function canResizeImageInBrowser(file: Blob): boolean {

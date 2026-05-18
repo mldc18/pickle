@@ -9,25 +9,14 @@ import {
 } from "./storage-images";
 
 describe("storage image optimization", () => {
-  it("builds a small Supabase render URL by default for display-sized images", () => {
+  it("keeps public storage URLs direct for display-sized images", () => {
     const url = getSupabaseStorageImageUrl(
       "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.jpg",
       { width: 96, height: 96, quality: 70 },
     );
 
     expect(url).toBe(
-      "https://project-ref.supabase.co/storage/v1/render/image/public/photos/user-1/display.jpg?width=96&height=96&resize=cover&quality=70",
-    );
-  });
-
-  it("keeps public storage URLs direct when original delivery is requested", () => {
-    const url = getSupabaseStorageImageUrl(
-      "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.webp",
-      { width: 96, height: 96, quality: 70, delivery: "original" },
-    );
-
-    expect(url).toBe(
-      "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.webp",
+      "https://project-ref.supabase.co/storage/v1/object/public/photos/user-1/display.jpg",
     );
   });
 
