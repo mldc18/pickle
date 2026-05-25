@@ -5,8 +5,9 @@ import { useApp } from "@/context/app-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { buildAdminUsersCsvContent } from "@/lib/admin-users-export";
 import { formatShortMonth, get6MonthRange, getMonthKey } from "@/lib/utils";
-import { Search, Check, Save, Download, Shield, ShieldCheck, Filter } from "lucide-react";
+import { Search, Check, Save, Download, Shield, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/cn";
 import Link from "next/link";
 
@@ -68,24 +69,7 @@ export default function AdminUsersPage() {
   const hasChanges = Object.keys(pendingChanges).length > 0;
 
   function handleExportCSV() {
-    const headers = ["Full Name", "Email", "Mobile", "Address", "Emergency Contact", "Emergency Contact Number", "Role", "Status", "Member Since", "La Marea ID URL"];
-    const rows = users
-      .sort((a, b) => a.lastName.localeCompare(b.lastName))
-      .map((u) => [
-        u.fullName,
-        u.email,
-        u.mobile,
-        u.address,
-        u.emergencyContactName || "",
-        u.emergencyContactNumber || "",
-        u.role,
-        u.isPaid ? "Active" : "Inactive",
-        u.createdAt,
-        u.laMareaIdUrl || "",
-      ]);
-    const csvContent = [headers, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
+    const csvContent = buildAdminUsersCsvContent(users);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
