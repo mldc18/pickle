@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StorageImage } from "@/components/ui/storage-image";
+import { getPendingPaymentVerificationUsers } from "@/lib/admin-payment-status";
 import { normalizeCapacityInput } from "@/lib/capacity";
 import { CreditCard, Trophy, Clock, ChevronLeft, ChevronRight, UserPlus, UserCheck, Eye, CheckCircle, Shield, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { getMonthKey, shortName } from "@/lib/utils";
@@ -29,16 +30,13 @@ export default function AdminDashboardPage() {
   const viewMonthKey = getMonthKey(viewDate);
   const viewMonthLabel = viewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const isCurrentMonth = monthOffset === 0;
-  const currentMonth = getMonthKey(new Date());
 
-  // Users who have a payment screenshot but are not yet active (not paid for current month)
-  const pendingVerification = users.filter(
-    (u) => u.paymentScreenshotUrl && !u.paymentHistory.some((p) => p.month === currentMonth && p.paid) && u.role === "member"
-  );
+  // Users who have a payment screenshot but are not yet active for the viewed month.
+  const pendingVerification = getPendingPaymentVerificationUsers(users, viewMonthKey);
 
   async function handleActivate(userId: string) {
     setActivatingId(userId);
-    await togglePayment(userId, currentMonth);
+    await togglePayment(userId, viewMonthKey);
     setActivatingId(null);
   }
 

@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useApp } from "@/context/app-context";
+import { useAuth } from "@/context/auth-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { canTogglePaymentMonth } from "@/lib/admin-payment-permissions";
 import { buildAdminUsersCsvContent } from "@/lib/admin-users-export";
 import { formatShortMonth, get6MonthRange, getMonthKey } from "@/lib/utils";
 import { Search, Check, Save, Download, Shield, ShieldCheck } from "lucide-react";
@@ -13,6 +15,7 @@ import Link from "next/link";
 
 export default function AdminUsersPage() {
   const { users, togglePayment } = useApp();
+  const { isSuperAdmin } = useAuth();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "member" | "admin" | "super_admin">("all");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
@@ -200,15 +203,15 @@ export default function AdminUsersPage() {
                     {months.map((m) => {
                       const active = getStatus(user.id, m);
                       const hasPending = pendingChanges[user.id]?.[m] !== undefined;
-                      const isFuture = m > currentMonth;
+                      const canToggleMonth = canTogglePaymentMonth(m, currentMonth, isSuperAdmin);
                       return (
                         <td key={m} className="px-2 py-2.5 text-center">
                           <button
-                            onClick={() => !isFuture && handleToggle(user.id, m)}
-                            disabled={isFuture}
+                            onClick={() => canToggleMonth && handleToggle(user.id, m)}
+                            disabled={!canToggleMonth}
                             className={cn(
                               "h-7 w-7 rounded-[8px] flex items-center justify-center transition-all",
-                              isFuture
+                              !canToggleMonth
                                 ? "bg-card-border/10 text-card-border/30 cursor-not-allowed"
                                 : active
                                   ? "bg-accent-soft text-accent-hover hover:bg-accent/20"

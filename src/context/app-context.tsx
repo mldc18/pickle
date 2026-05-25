@@ -24,6 +24,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { REGISTRATION_OPEN_HOUR, REGISTRATION_OPEN_MINUTE, REGISTRATION_CLOSE_HOUR, REGISTRATION_CLOSE_MINUTE } from "@/lib/constants";
 import { isBeforeCancellationDeadline } from "@/lib/game-deadlines";
+import { canTogglePaymentMonth } from "@/lib/admin-payment-permissions";
 import {
   DEFAULT_MAX_PLAYERS,
   normalizeCapacityInput,
@@ -136,7 +137,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
   const today = useMemo(() => getTodayDate(), []);
   const pathname = usePathname();
-  const { user: currentUser, isAdmin } = useAuth();
+  const { user: currentUser, isAdmin, isSuperAdmin } = useAuth();
   const currentUserId = currentUser?.id ?? null;
 
   const [users, setUsers] = useState<User[]>([]);
@@ -464,6 +465,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const togglePayment = useCallback(
     async (userId: string, month: string) => {
+      if (!canTogglePaymentMonth(month, getMonthKey(new Date()), isSuperAdmin)) {
+        return;
+      }
+
       // month is "YYYY-MM"; convert to date "YYYY-MM-01"
       const monthDate = `${month}-01`;
       const { data: existing } = await supabase
@@ -480,7 +485,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (error) console.error("togglePayment failed", error);
       await fetchAll();
     },
-    [supabase, fetchAll],
+    [supabase, fetchAll, isSuperAdmin],
   );
 
   const blockDate = useCallback(
