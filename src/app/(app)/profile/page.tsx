@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { useApp } from "@/context/app-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { StorageImage } from "@/components/ui/storage-image";
-import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut, ShieldAlert, Pencil, X, Check, AlertCircle } from "lucide-react";
+import { Camera, User, Mail, Phone, MapPin, Calendar, CreditCard, LogOut, ShieldAlert, Pencil, X, Check, AlertCircle, KeyRound } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -320,11 +321,20 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      <Link
+        href="/change-password"
+        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-[14px] border-[1.5px] border-card-border bg-card text-[14px] font-bold transition-all hover:bg-input-bg cursor-pointer animate-fade-up"
+        style={{ animationDelay: "0.3s" }}
+      >
+        <KeyRound className="h-4 w-4" />
+        Update Password
+      </Link>
+
       {/* Logout */}
       <button
         onClick={logout}
         className="flex items-center justify-center gap-2 w-full py-3.5 rounded-[14px] border-[1.5px] border-destructive/20 bg-destructive/5 text-destructive text-[14px] font-bold transition-all hover:bg-destructive/10 hover:border-destructive/40 cursor-pointer animate-fade-up"
-        style={{ animationDelay: "0.3s" }}
+        style={{ animationDelay: "0.35s" }}
       >
         <LogOut className="h-4 w-4" />
         Sign Out

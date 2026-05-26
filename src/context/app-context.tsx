@@ -99,6 +99,7 @@ type UserRow = {
   emergency_contact_number: string;
   accepted_terms: boolean;
   accepted_rules: boolean;
+  must_change_password: boolean | null;
   created_at: string;
 };
 
@@ -273,6 +274,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         emergencyContactName: u.emergency_contact_name ?? "",
         emergencyContactNumber: u.emergency_contact_number ?? "",
         acceptedRules: u.accepted_rules ?? false,
+        mustChangePassword: u.must_change_password ?? false,
         isPaid: userPayments.get(currentMonth) ?? false,
         paymentHistory,
         noShowCount: noShowCounts.get(u.id) ?? 0,

@@ -71,6 +71,15 @@ export async function POST(
 
       if (error) throw new Error(error.message);
     },
+    markPasswordChangeRequired: async (userId) => {
+      const adminSupabase = createAdminClient();
+      const { error } = await adminSupabase
+        .from("users")
+        .update({ must_change_password: true })
+        .eq("id", userId);
+
+      if (error) throw new Error(error.message);
+    },
   });
 
   if (!result.ok) {

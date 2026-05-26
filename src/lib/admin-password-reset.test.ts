@@ -65,6 +65,7 @@ describe("admin password reset", () => {
 
   it("updates the Supabase Auth password and returns the temporary password", async () => {
     const updatePassword = vi.fn(async () => {});
+    const markPasswordChangeRequired = vi.fn(async () => {});
 
     await expect(
       resetUserPasswordAsAdmin({
@@ -72,9 +73,11 @@ describe("admin password reset", () => {
         target: { id: "admin-1", role: "admin" },
         generatePassword: () => "TempPass123!",
         updatePassword,
+        markPasswordChangeRequired,
       }),
     ).resolves.toEqual({ ok: true, temporaryPassword: "TempPass123!" });
 
     expect(updatePassword).toHaveBeenCalledWith("admin-1", "TempPass123!");
+    expect(markPasswordChangeRequired).toHaveBeenCalledWith("admin-1");
   });
 });

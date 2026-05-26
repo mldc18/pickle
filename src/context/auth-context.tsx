@@ -19,6 +19,7 @@ import {
 interface AuthContextType extends AuthState {
   login: (usernameOrEmail: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  changePassword: (password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   register: (data: RegistrationFormData) => Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
@@ -42,6 +43,7 @@ type ProfileRow = {
   emergency_contact_number: string | null;
   accepted_terms: boolean;
   accepted_rules: boolean;
+  must_change_password: boolean | null;
   created_at: string;
 };
 
@@ -79,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emergencyContactName: profile.emergency_contact_name ?? "",
         emergencyContactNumber: profile.emergency_contact_number ?? "",
         acceptedRules: profile.accepted_rules ?? false,
+        mustChangePassword: profile.must_change_password ?? false,
         // isPaid / paymentHistory / noShowCount are derived — populated later
         // once app-context is wired to Supabase. For now, defaults.
         isPaid: false,
@@ -145,6 +148,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
   }, [supabase]);
+
+  const changePassword = useCallback(
+    async (password: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData.user?.id;
+      if (!uid) return { ok: false, error: "Not authenticated" };
+
+      const response = await fetch("/api/account/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        return { ok: false, error: body?.error ?? "Password update failed" };
+      }
+
+      await loadProfile(uid);
+      return { ok: true };
+    },
+    [supabase, loadProfile],
+  );
 
   const register = useCallback(
     async (data: RegistrationFormData) => {
@@ -238,6 +263,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isSuperAdmin: user?.role === "super_admin",
         login,
         logout,
+        changePassword,
         register,
       }}
     >

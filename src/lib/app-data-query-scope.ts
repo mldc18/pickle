@@ -14,6 +14,7 @@ const BASE_USER_COLUMNS = [
   "emergency_contact_number",
   "accepted_terms",
   "accepted_rules",
+  "must_change_password",
   "created_at",
 ];
 

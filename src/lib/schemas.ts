@@ -54,6 +54,7 @@ export const userSchema = z.object({
   emergencyContactName: z.string(),
   emergencyContactNumber: z.string(),
   acceptedRules: z.boolean(),
+  mustChangePassword: z.boolean(),
   isPaid: z.boolean(),
   paymentHistory: z.array(monthlyPaymentSchema),
   noShowCount: z.number().int().nonnegative(),
@@ -117,6 +118,16 @@ export const registerStep3Schema = z.object({
   profilePhoto: z.instanceof(Blob, { message: "A profile photo is required" }),
 });
 
+export const changePasswordSchema = z
+  .object({
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 /** Full registration payload — step1 (without confirmPassword) + step2 + step3. */
 export const registrationFormSchema = z.object({
   username: z.string().min(1),
@@ -147,6 +158,7 @@ export type BlockedDate = z.infer<typeof blockedDateSchema>;
 export type RegisterStep1Input = z.infer<typeof registerStep1Schema>;
 export type RegisterStep2Input = z.infer<typeof registerStep2Schema>;
 export type RegisterStep3Input = z.infer<typeof registerStep3Schema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
 
 /** In-memory auth state — not persisted to DB, so no schema. */

@@ -98,11 +98,13 @@ export async function resetUserPasswordAsAdmin({
   target,
   generatePassword = generateTemporaryPassword,
   updatePassword,
+  markPasswordChangeRequired,
 }: {
   actor: ResetProfile | null;
   target: ResetProfile | null;
   generatePassword?: () => string;
   updatePassword: (targetUserId: string, temporaryPassword: string) => Promise<void>;
+  markPasswordChangeRequired: (targetUserId: string) => Promise<void>;
 }): Promise<PasswordResetFailure | { ok: true; temporaryPassword: string }> {
   const decision = getAdminPasswordResetDecision(actor, target);
   if (!decision.ok) return decision;
@@ -112,6 +114,7 @@ export async function resetUserPasswordAsAdmin({
 
   try {
     await updatePassword(target.id, temporaryPassword);
+    await markPasswordChangeRequired(target.id);
   } catch (error) {
     return {
       ok: false,

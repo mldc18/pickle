@@ -8,15 +8,16 @@ import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) router.push("/login");
-    else if (!isAdmin) router.push("/dashboard");
-  }, [isAuthenticated, isAdmin, router]);
+    if (!isAuthenticated) router.replace("/login");
+    else if (user?.mustChangePassword) router.replace("/change-password");
+    else if (!isAdmin) router.replace("/dashboard");
+  }, [isAuthenticated, isAdmin, router, user]);
 
-  if (!isAuthenticated || !isAdmin) return null;
+  if (!isAuthenticated || user?.mustChangePassword || !isAdmin) return null;
 
   // All admin sub-navigation lives in the sticky bottom bar
   // (MobileNav) — no nested sidebar or secondary tab row.

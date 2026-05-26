@@ -13,6 +13,7 @@ import {
 describe("app data query scope", () => {
   it("keeps auth profile reads explicit", () => {
     expect(AUTH_USER_COLUMNS).toContain("id");
+    expect(AUTH_USER_COLUMNS).toContain("must_change_password");
     expect(AUTH_USER_COLUMNS).not.toContain("payment_screenshot_url");
     expect(AUTH_USER_COLUMNS).not.toContain("la_marea_id_url");
     expect(AUTH_USER_COLUMNS).not.toContain("*");
@@ -20,6 +21,7 @@ describe("app data query scope", () => {
 
   it("keeps member app reads away from admin-only file URLs", () => {
     expect(MEMBER_USER_COLUMNS).toContain("photo_url");
+    expect(MEMBER_USER_COLUMNS).toContain("must_change_password");
     expect(MEMBER_USER_COLUMNS).not.toContain("payment_screenshot_url");
     expect(MEMBER_USER_COLUMNS).not.toContain("la_marea_id_url");
   });
