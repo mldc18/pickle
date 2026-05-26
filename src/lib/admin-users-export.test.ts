@@ -68,6 +68,18 @@ describe("admin users export", () => {
     expect(rows[0][headers.indexOf(RECENT_NO_SHOW_COLUMN)]).toBe(1);
   });
 
+  it("does not export La Marea ID URLs", () => {
+    const { headers, rows } = buildAdminUsersCsvRows([
+      makeUser({
+        laMareaIdUrl: "https://example.com/la-marea-id.webp",
+      }),
+    ]);
+
+    expect(headers).not.toContain("La Marea ID URL");
+    expect(rows[0]).not.toContain("https://example.com/la-marea-id.webp");
+    expect(rows[0]).toHaveLength(headers.length);
+  });
+
   it("exports users alphabetically by first name", () => {
     const { rows } = buildAdminUsersCsvRows([
       makeUser({

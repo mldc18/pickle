@@ -17,7 +17,6 @@ const ADMIN_USERS_EXPORT_HEADERS = [
   "Status",
   "Member Since",
   RECENT_NO_SHOW_COLUMN,
-  "La Marea ID URL",
 ] as const;
 
 export function countNoShowsInLastMonths(
@@ -47,7 +46,6 @@ export function buildAdminUsersCsvRows(
     u.isPaid ? "Active" : "Inactive",
     u.createdAt,
     countNoShowsInLastMonths(u.noShowDates, referenceDate),
-    u.laMareaIdUrl || "",
   ]);
 
   return {
