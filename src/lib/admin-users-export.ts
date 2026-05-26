@@ -1,4 +1,5 @@
 import type { User } from "./schemas";
+import { sortUsersByFirstName } from "./user-sorting";
 
 export const RECENT_NO_SHOW_MONTHS = 2;
 export const RECENT_NO_SHOW_COLUMN = `No-Shows (Last ${RECENT_NO_SHOW_MONTHS} Months)`;
@@ -35,21 +36,19 @@ export function buildAdminUsersCsvRows(
   users: readonly User[],
   referenceDate: Date = new Date(),
 ): { headers: string[]; rows: CsvCell[][] } {
-  const rows = [...users]
-    .sort((a, b) => a.lastName.localeCompare(b.lastName))
-    .map((u) => [
-      u.fullName,
-      u.email,
-      u.mobile,
-      u.address,
-      u.emergencyContactName || "",
-      u.emergencyContactNumber || "",
-      u.role,
-      u.isPaid ? "Active" : "Inactive",
-      u.createdAt,
-      countNoShowsInLastMonths(u.noShowDates, referenceDate),
-      u.laMareaIdUrl || "",
-    ]);
+  const rows = sortUsersByFirstName(users).map((u) => [
+    u.fullName,
+    u.email,
+    u.mobile,
+    u.address,
+    u.emergencyContactName || "",
+    u.emergencyContactNumber || "",
+    u.role,
+    u.isPaid ? "Active" : "Inactive",
+    u.createdAt,
+    countNoShowsInLastMonths(u.noShowDates, referenceDate),
+    u.laMareaIdUrl || "",
+  ]);
 
   return {
     headers: [...ADMIN_USERS_EXPORT_HEADERS],

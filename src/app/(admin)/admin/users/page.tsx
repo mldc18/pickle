@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { canTogglePaymentMonth } from "@/lib/admin-payment-permissions";
 import { buildAdminUsersCsvContent } from "@/lib/admin-users-export";
+import { sortUsersByFirstName } from "@/lib/user-sorting";
 import { formatShortMonth, get6MonthRange, getMonthKey } from "@/lib/utils";
 import { Search, Check, Save, Download, Shield, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -179,53 +180,51 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered
-                .sort((a, b) => a.lastName.localeCompare(b.lastName))
-                .map((user) => (
-                  <tr key={user.id} className="border-b border-card-border/50 hover:bg-accent-soft/30 transition-colors">
-                    <td className="sticky left-0 z-10 bg-card px-2.5 py-2.5 whitespace-nowrap max-w-[120px]">
-                      <Link href={`/admin/users/${user.id}`} className="hover:text-accent-hover transition-colors text-[11px] font-bold truncate flex items-center gap-1">
-                        {user.fullName}
-                        {user.role === "super_admin" && <ShieldCheck className="h-2.5 w-2.5 text-warning-dark shrink-0" />}
-                        {user.role === "admin" && <Shield className="h-2.5 w-2.5 text-warning-dark shrink-0" />}
-                      </Link>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <Badge variant={user.isPaid ? "success" : "destructive"} className="text-[8px]">
-                          {user.isPaid ? "Active" : "Inactive"}
+              {sortUsersByFirstName(filtered).map((user) => (
+                <tr key={user.id} className="border-b border-card-border/50 hover:bg-accent-soft/30 transition-colors">
+                  <td className="sticky left-0 z-10 bg-card px-2.5 py-2.5 whitespace-nowrap max-w-[120px]">
+                    <Link href={`/admin/users/${user.id}`} className="hover:text-accent-hover transition-colors text-[11px] font-bold truncate flex items-center gap-1">
+                      {user.fullName}
+                      {user.role === "super_admin" && <ShieldCheck className="h-2.5 w-2.5 text-warning-dark shrink-0" />}
+                      {user.role === "admin" && <Shield className="h-2.5 w-2.5 text-warning-dark shrink-0" />}
+                    </Link>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Badge variant={user.isPaid ? "success" : "destructive"} className="text-[8px]">
+                        {user.isPaid ? "Active" : "Inactive"}
+                      </Badge>
+                      {user.noShowCount > 0 && (
+                        <Badge variant="warning" className="text-[8px]">
+                          {user.noShowCount} NS
                         </Badge>
-                        {user.noShowCount > 0 && (
-                          <Badge variant="warning" className="text-[8px]">
-                            {user.noShowCount} NS
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                    {months.map((m) => {
-                      const active = getStatus(user.id, m);
-                      const hasPending = pendingChanges[user.id]?.[m] !== undefined;
-                      const canToggleMonth = canTogglePaymentMonth(m, currentMonth, isSuperAdmin);
-                      return (
-                        <td key={m} className="px-2 py-2.5 text-center">
-                          <button
-                            onClick={() => canToggleMonth && handleToggle(user.id, m)}
-                            disabled={!canToggleMonth}
-                            className={cn(
-                              "h-7 w-7 rounded-[8px] flex items-center justify-center transition-all",
-                              !canToggleMonth
-                                ? "bg-card-border/10 text-card-border/30 cursor-not-allowed"
-                                : active
-                                  ? "bg-accent-soft text-accent-hover hover:bg-accent/20"
-                                  : "bg-card-border/20 text-card-border hover:bg-card-border/40",
-                              hasPending && "ring-2 ring-warning/50"
-                            )}
-                          >
-                            {active ? <Check className="h-3.5 w-3.5" /> : <span className="text-xs">·</span>}
-                          </button>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                      )}
+                    </div>
+                  </td>
+                  {months.map((m) => {
+                    const active = getStatus(user.id, m);
+                    const hasPending = pendingChanges[user.id]?.[m] !== undefined;
+                    const canToggleMonth = canTogglePaymentMonth(m, currentMonth, isSuperAdmin);
+                    return (
+                      <td key={m} className="px-2 py-2.5 text-center">
+                        <button
+                          onClick={() => canToggleMonth && handleToggle(user.id, m)}
+                          disabled={!canToggleMonth}
+                          className={cn(
+                            "h-7 w-7 rounded-[8px] flex items-center justify-center transition-all",
+                            !canToggleMonth
+                              ? "bg-card-border/10 text-card-border/30 cursor-not-allowed"
+                              : active
+                                ? "bg-accent-soft text-accent-hover hover:bg-accent/20"
+                                : "bg-card-border/20 text-card-border hover:bg-card-border/40",
+                            hasPending && "ring-2 ring-warning/50"
+                          )}
+                        >
+                          {active ? <Check className="h-3.5 w-3.5" /> : <span className="text-xs">·</span>}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

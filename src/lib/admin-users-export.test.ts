@@ -67,4 +67,33 @@ describe("admin users export", () => {
     expect(headers).toContain(RECENT_NO_SHOW_COLUMN);
     expect(rows[0][headers.indexOf(RECENT_NO_SHOW_COLUMN)]).toBe(1);
   });
+
+  it("exports users alphabetically by first name", () => {
+    const { rows } = buildAdminUsersCsvRows([
+      makeUser({
+        id: "user-kenneth",
+        fullName: "Kenneth Abalena",
+        firstName: "Kenneth",
+        lastName: "Abalena",
+      }),
+      makeUser({
+        id: "user-beatriz",
+        fullName: "Beatriz Gloria",
+        firstName: "Beatriz",
+        lastName: "Gloria",
+      }),
+      makeUser({
+        id: "user-coleen",
+        fullName: "Coleen Antioqui",
+        firstName: "Coleen",
+        lastName: "Antioqui",
+      }),
+    ]);
+
+    expect(rows.map((row) => row[0])).toEqual([
+      "Beatriz Gloria",
+      "Coleen Antioqui",
+      "Kenneth Abalena",
+    ]);
+  });
 });
