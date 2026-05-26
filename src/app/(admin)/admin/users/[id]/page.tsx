@@ -6,8 +6,9 @@ import { useApp } from "@/context/app-context";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { StorageImage } from "@/components/ui/storage-image";
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, ShieldAlert, Trash2 } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, ShieldOff, ShieldCheck, AlertTriangle, ShieldAlert, Trash2, KeyRound, Copy } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminUserDetailPage({
@@ -18,10 +19,15 @@ export default function AdminUserDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const { users, gameDays, toggleNoShow, toggleAdmin, toggleSuperAdmin, deleteUser } = useApp();
-  const { user: currentUser, isAdmin, isSuperAdmin } = useAuth();
+  const { user: currentUser, isSuperAdmin } = useAuth();
   const user = users.find((u) => u.id === id);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmPasswordReset, setConfirmPasswordReset] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [passwordResetError, setPasswordResetError] = useState("");
+  const [passwordCopied, setPasswordCopied] = useState(false);
 
   if (!user) {
     return (
@@ -33,6 +39,8 @@ export default function AdminUserDetailPage({
       </div>
     );
   }
+
+  const targetUserId = user.id;
 
   // Build list of game dates this user registered for, with no-show status
   const registeredGameDates = Object.entries(gameDays)
@@ -59,6 +67,45 @@ export default function AdminUserDetailPage({
   const displayPhoto = user.photoUrl ?? user.avatarUrl;
   const isUserAdmin = user.role === "admin" || user.role === "super_admin";
   const isUserSuperAdmin = user.role === "super_admin";
+  const canResetPassword =
+    currentUser?.id !== user.id &&
+    !isUserSuperAdmin &&
+    (isSuperAdmin || user.role === "member");
+
+  async function handlePasswordReset() {
+    setResettingPassword(true);
+    setPasswordResetError("");
+    setPasswordCopied(false);
+
+    try {
+      const response = await fetch(`/api/admin/users/${targetUserId}/reset-password`, {
+        method: "POST",
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          typeof payload.error === "string" ? payload.error : "Password reset failed.",
+        );
+      }
+
+      setTemporaryPassword(payload.temporaryPassword ?? "");
+      setConfirmPasswordReset(false);
+    } catch (error) {
+      setPasswordResetError(
+        error instanceof Error ? error.message : "Password reset failed.",
+      );
+    } finally {
+      setResettingPassword(false);
+    }
+  }
+
+  async function copyTemporaryPassword() {
+    if (!temporaryPassword) return;
+    await navigator.clipboard.writeText(temporaryPassword);
+    setPasswordCopied(true);
+    setTimeout(() => setPasswordCopied(false), 2000);
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -120,6 +167,91 @@ export default function AdminUserDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Password Reset */}
+      {canResetPassword && (
+        <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.1s" }}>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-accent-soft text-accent-hover shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+                <KeyRound className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold">Password Reset</p>
+                <p className="text-[11px] text-text-muted font-medium">Generate a temporary password to share manually</p>
+              </div>
+            </div>
+
+            {temporaryPassword && (
+              <div className="flex flex-col gap-2 rounded-[10px] border border-accent/15 bg-accent-soft/40 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[1px] text-accent-hover">Temporary password</p>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={temporaryPassword}
+                    className="font-mono text-[13px]"
+                    aria-label="Temporary password"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={copyTemporaryPassword}
+                    aria-label="Copy temporary password"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-[11px] font-medium text-muted">
+                  {passwordCopied ? "Copied." : "Shown here only until you leave this page."}
+                </p>
+              </div>
+            )}
+
+            {passwordResetError && (
+              <p className="rounded-[10px] border border-destructive/20 bg-destructive/5 px-3 py-2 text-[11px] font-semibold text-destructive">
+                {passwordResetError}
+              </p>
+            )}
+
+            {!confirmPasswordReset ? (
+              <Button
+                variant={temporaryPassword ? "outline" : "default"}
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  setPasswordResetError("");
+                  setConfirmPasswordReset(true);
+                }}
+              >
+                <KeyRound className="h-4 w-4" />
+                {temporaryPassword ? "Generate New Password" : "Generate Temporary Password"}
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setConfirmPasswordReset(false)}
+                  disabled={resettingPassword}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1"
+                  onClick={handlePasswordReset}
+                  disabled={resettingPassword}
+                >
+                  {resettingPassword ? "Resetting..." : "Confirm Reset"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Admin Role */}
       <div className="rounded-[16px] border border-card-border bg-card p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up" style={{ animationDelay: "0.1s" }}>
