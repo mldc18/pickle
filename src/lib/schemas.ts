@@ -78,6 +78,7 @@ export const gameDaySchema = z.object({
   blockMessage: z.string().nullable(),
   capacity: z.number().int().positive(),
   capacityOverride: z.number().int().positive().nullable(),
+  capacitySnapshot: z.number().int().positive().nullable(),
   registeredPlayers: z.array(registeredPlayerSchema),
   waitlist: z.array(registeredPlayerSchema),
   noShows: z.array(z.string()),

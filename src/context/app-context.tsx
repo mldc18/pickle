@@ -27,6 +27,7 @@ import { isBeforeCancellationDeadline } from "@/lib/game-deadlines";
 import { canTogglePaymentMonth } from "@/lib/admin-payment-permissions";
 import {
   DEFAULT_MAX_PLAYERS,
+  getCapacitySnapshotUpdatesBeforeDefaultChange,
   normalizeCapacityInput,
   resolveGameCapacity,
   validateCapacityChange,
@@ -110,6 +111,7 @@ type GameDayRow = {
   is_cancelled: boolean;
   cancel_message: string | null;
   capacity_override: number | null;
+  capacity_snapshot: number | null;
 };
 type AppSettingRow = { value: number | string | null };
 type RegistrationRow = {
@@ -129,6 +131,7 @@ const EMPTY_GAME_DAY: GameDay = {
   blockMessage: null,
   capacity: DEFAULT_MAX_PLAYERS,
   capacityOverride: null,
+  capacitySnapshot: null,
   registeredPlayers: [],
   waitlist: [],
   noShows: [],
@@ -318,6 +321,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const gd = gameDayRows.find((g) => g.date === date);
       const regs = regsByDate.get(date) ?? [];
       const capacityOverride = gd?.capacity_override ?? null;
+      const capacitySnapshot = gd?.capacity_snapshot ?? null;
       const registered = regs
         .filter((r) => r.status === "registered")
         .sort((a, b) => a.position - b.position)
@@ -349,8 +353,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         capacity: resolveGameCapacity({
           defaultCapacity: nextDefaultCapacity,
           dateCapacityOverride: capacityOverride,
+          capacitySnapshot,
         }),
         capacityOverride,
+        capacitySnapshot,
         registeredPlayers: registered,
         waitlist,
         noShows: noShowsByDate.get(date) ?? [],
@@ -524,6 +530,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       if (overloadedDay) {
         return validateCapacityChange(nextCapacity, overloadedDay.registeredPlayers.length);
+      }
+
+      const snapshotUpdates = getCapacitySnapshotUpdatesBeforeDefaultChange(
+        Object.values(gameDays).map((candidate) => ({
+          date: candidate.date,
+          capacity: candidate.capacity,
+          capacityOverride: candidate.capacityOverride,
+          capacitySnapshot: candidate.capacitySnapshot,
+          registeredPlayersCount: candidate.registeredPlayers.length,
+        })),
+      );
+
+      if (snapshotUpdates.length > 0) {
+        const { error: snapshotError } = await supabase
+          .from("game_days")
+          .upsert(
+            snapshotUpdates.map((update) => {
+              const existing = gameDays[update.date];
+              return {
+                date: update.date,
+                is_cancelled: existing?.isBlocked ?? false,
+                cancel_message: existing?.blockMessage ?? null,
+                capacity_snapshot: update.capacitySnapshot,
+              };
+            }),
+            { onConflict: "date" },
+          );
+        if (snapshotError) return { ok: false, error: snapshotError.message };
       }
 
       const { error } = await supabase

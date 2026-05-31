@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MAX_PLAYERS,
   MAX_CAPACITY_LIMIT,
+  getCapacitySnapshotUpdatesBeforeDefaultChange,
   normalizeCapacityInput,
   resolveGameCapacity,
   validateCapacityChange,
@@ -10,11 +11,34 @@ import {
 
 describe("capacity rules", () => {
   it("uses a date override before falling back to the current default", () => {
-    expect(resolveGameCapacity({ defaultCapacity: 30, dateCapacityOverride: 36 })).toBe(36);
-    expect(resolveGameCapacity({ defaultCapacity: 30, dateCapacityOverride: null })).toBe(30);
-    expect(resolveGameCapacity({ defaultCapacity: null, dateCapacityOverride: null })).toBe(
-      DEFAULT_MAX_PLAYERS,
-    );
+    expect(
+      resolveGameCapacity({
+        defaultCapacity: 30,
+        dateCapacityOverride: 36,
+        capacitySnapshot: 24,
+      }),
+    ).toBe(36);
+    expect(
+      resolveGameCapacity({
+        defaultCapacity: 30,
+        dateCapacityOverride: null,
+        capacitySnapshot: 24,
+      }),
+    ).toBe(24);
+    expect(
+      resolveGameCapacity({
+        defaultCapacity: 30,
+        dateCapacityOverride: null,
+        capacitySnapshot: null,
+      }),
+    ).toBe(30);
+    expect(
+      resolveGameCapacity({
+        defaultCapacity: null,
+        dateCapacityOverride: null,
+        capacitySnapshot: null,
+      }),
+    ).toBe(DEFAULT_MAX_PLAYERS);
   });
 
   it("normalizes admin capacity input into a bounded whole number", () => {
@@ -30,5 +54,40 @@ describe("capacity rules", () => {
       ok: false,
       error: "Capacity cannot be lower than the 24 players already confirmed.",
     });
+  });
+
+  it("finds default-driven game days that need a capacity snapshot before the default changes", () => {
+    expect(
+      getCapacitySnapshotUpdatesBeforeDefaultChange([
+        {
+          date: "2026-05-29",
+          capacity: 24,
+          capacityOverride: null,
+          capacitySnapshot: null,
+          registeredPlayersCount: 21,
+        },
+        {
+          date: "2026-05-30",
+          capacity: 30,
+          capacityOverride: 30,
+          capacitySnapshot: null,
+          registeredPlayersCount: 24,
+        },
+        {
+          date: "2026-05-31",
+          capacity: 24,
+          capacityOverride: null,
+          capacitySnapshot: 24,
+          registeredPlayersCount: 20,
+        },
+        {
+          date: "2026-06-01",
+          capacity: 24,
+          capacityOverride: null,
+          capacitySnapshot: null,
+          registeredPlayersCount: 0,
+        },
+      ]),
+    ).toEqual([{ date: "2026-05-29", capacitySnapshot: 24 }]);
   });
 });

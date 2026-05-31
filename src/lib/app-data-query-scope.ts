@@ -27,7 +27,7 @@ export const ROSTER_USER_COLUMNS = "id,full_name,avatar_url,photo_url";
 
 export const MONTHLY_PAYMENT_COLUMNS = "user_id,month,paid";
 export const GAME_NO_SHOW_COLUMNS = "game_date,user_id";
-export const GAME_DAY_COLUMNS = "date,is_cancelled,cancel_message,capacity_override";
+export const GAME_DAY_COLUMNS = "date,is_cancelled,cancel_message,capacity_override,capacity_snapshot";
 export const GAME_REGISTRATION_COLUMNS = "game_date,user_id,status,position,registered_at";
 
 type AppDataQueryScopeInput = {

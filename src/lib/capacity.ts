@@ -17,11 +17,15 @@ export function normalizeCapacityInput(value: string | number | null | undefined
 export function resolveGameCapacity({
   defaultCapacity,
   dateCapacityOverride,
+  capacitySnapshot,
 }: {
   defaultCapacity: number | null | undefined;
   dateCapacityOverride: number | null | undefined;
+  capacitySnapshot?: number | null | undefined;
 }) {
-  return normalizeCapacityInput(dateCapacityOverride ?? defaultCapacity ?? DEFAULT_MAX_PLAYERS);
+  return normalizeCapacityInput(
+    dateCapacityOverride ?? capacitySnapshot ?? defaultCapacity ?? DEFAULT_MAX_PLAYERS,
+  );
 }
 
 export function validateCapacityChange(capacity: number, confirmedPlayers: number) {
@@ -33,4 +37,26 @@ export function validateCapacityChange(capacity: number, confirmedPlayers: numbe
   }
 
   return { ok: true as const };
+}
+
+export function getCapacitySnapshotUpdatesBeforeDefaultChange(
+  gameDays: Array<{
+    date: string;
+    capacity: number;
+    capacityOverride: number | null;
+    capacitySnapshot: number | null;
+    registeredPlayersCount: number;
+  }>,
+) {
+  return gameDays
+    .filter(
+      (gameDay) =>
+        gameDay.capacityOverride === null &&
+        gameDay.capacitySnapshot === null &&
+        gameDay.registeredPlayersCount > 0,
+    )
+    .map((gameDay) => ({
+      date: gameDay.date,
+      capacitySnapshot: normalizeCapacityInput(gameDay.capacity),
+    }));
 }
