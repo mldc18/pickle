@@ -3,7 +3,9 @@ import {
   CANCELLATION_CLOSE_MINUTE,
   REGISTRATION_CLOSE_HOUR,
   REGISTRATION_CLOSE_MINUTE,
-} from "@/lib/constants";
+  REGISTRATION_OPEN_HOUR,
+  REGISTRATION_OPEN_MINUTE,
+} from "./constants";
 
 const MANILA_TIME_ZONE = "Asia/Manila";
 
@@ -55,4 +57,12 @@ export function isBeforeCancellationDeadline(now: Date = new Date()) {
 
 export function isBeforeRegistrationDeadline(now: Date = new Date()) {
   return getManilaMinutes(now) < getMinutesFrom24Hour(REGISTRATION_DEADLINE);
+}
+
+export function isRegistrationWindowOpen(now: Date = new Date()) {
+  const currentMinutes = getManilaMinutes(now);
+  const openMinutes = REGISTRATION_OPEN_HOUR * 60 + REGISTRATION_OPEN_MINUTE;
+  const closeMinutes = getMinutesFrom24Hour(REGISTRATION_DEADLINE);
+
+  return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
 }

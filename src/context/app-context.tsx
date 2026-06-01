@@ -22,8 +22,7 @@ import {
   getRosterUserIdsForQuery,
 } from "@/lib/app-data-query-scope";
 import { createClient } from "@/lib/supabase/client";
-import { REGISTRATION_OPEN_HOUR, REGISTRATION_OPEN_MINUTE, REGISTRATION_CLOSE_HOUR, REGISTRATION_CLOSE_MINUTE } from "@/lib/constants";
-import { isBeforeCancellationDeadline } from "@/lib/game-deadlines";
+import { isBeforeCancellationDeadline, isRegistrationWindowOpen } from "@/lib/game-deadlines";
 import { canTogglePaymentMonth } from "@/lib/admin-payment-permissions";
 import {
   DEFAULT_MAX_PLAYERS,
@@ -403,11 +402,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (gameDay.isBlocked || blockedDates.some((b) => b.date === today)) {
       return "blocked";
     }
-    const now = new Date();
-    const openMinutes = REGISTRATION_OPEN_HOUR * 60 + REGISTRATION_OPEN_MINUTE;
-    const closeMinutes = REGISTRATION_CLOSE_HOUR * 60 + REGISTRATION_CLOSE_MINUTE;
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    if (nowMinutes < openMinutes || nowMinutes >= closeMinutes) {
+    if (!isRegistrationWindowOpen()) {
       return "outside_hours";
     }
     return "open";
@@ -438,7 +433,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // -------------------------------------------------------------------------
 
   const registerForGame = useCallback(
-    async (_userId: string, _fullName: string) => {
+    async () => {
       const status = getRegistrationStatus();
       if (status === "blocked") return "blocked" as const;
       if (status === "outside_hours") return "closed" as const;
@@ -459,7 +454,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const unregisterFromGame = useCallback(
-    async (_userId: string) => {
+    async () => {
       if (!isBeforeCancellationDeadline()) {
         return;
       }

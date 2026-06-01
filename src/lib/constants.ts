@@ -1,4 +1,4 @@
-import { DEFAULT_MAX_PLAYERS } from "@/lib/capacity";
+import { DEFAULT_MAX_PLAYERS } from "./capacity";
 
 export const MAX_SLOTS = DEFAULT_MAX_PLAYERS;
 export const REGISTRATION_OPEN_HOUR = 12; // 12:00 PM noon
