@@ -18,13 +18,20 @@ export function resolveGameCapacity({
   defaultCapacity,
   dateCapacityOverride,
   capacitySnapshot,
+  gameDate,
+  today,
 }: {
   defaultCapacity: number | null | undefined;
   dateCapacityOverride: number | null | undefined;
   capacitySnapshot?: number | null | undefined;
+  gameDate?: string | null | undefined;
+  today?: string | null | undefined;
 }) {
+  const historicalSnapshot =
+    gameDate && today && gameDate < today ? capacitySnapshot : null;
+
   return normalizeCapacityInput(
-    dateCapacityOverride ?? capacitySnapshot ?? defaultCapacity ?? DEFAULT_MAX_PLAYERS,
+    dateCapacityOverride ?? historicalSnapshot ?? defaultCapacity ?? DEFAULT_MAX_PLAYERS,
   );
 }
 
@@ -47,10 +54,12 @@ export function getCapacitySnapshotUpdatesBeforeDefaultChange(
     capacitySnapshot: number | null;
     registeredPlayersCount: number;
   }>,
+  today: string,
 ) {
   return gameDays
     .filter(
       (gameDay) =>
+        gameDay.date < today &&
         gameDay.capacityOverride === null &&
         gameDay.capacitySnapshot === null &&
         gameDay.registeredPlayersCount > 0,

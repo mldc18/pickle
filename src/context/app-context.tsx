@@ -353,6 +353,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           defaultCapacity: nextDefaultCapacity,
           dateCapacityOverride: capacityOverride,
           capacitySnapshot,
+          gameDate: date,
+          today,
         }),
         capacityOverride,
         capacitySnapshot,
@@ -535,6 +537,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           capacitySnapshot: candidate.capacitySnapshot,
           registeredPlayersCount: candidate.registeredPlayers.length,
         })),
+        today,
       );
 
       if (snapshotUpdates.length > 0) {

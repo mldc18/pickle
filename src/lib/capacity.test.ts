@@ -10,12 +10,14 @@ import {
 } from "./capacity";
 
 describe("capacity rules", () => {
-  it("uses a date override before falling back to the current default", () => {
+  it("uses a date override before falling back to the current default for current and future dates", () => {
     expect(
       resolveGameCapacity({
         defaultCapacity: 30,
         dateCapacityOverride: 36,
         capacitySnapshot: 24,
+        gameDate: "2026-06-02",
+        today: "2026-06-02",
       }),
     ).toBe(36);
     expect(
@@ -23,6 +25,29 @@ describe("capacity rules", () => {
         defaultCapacity: 30,
         dateCapacityOverride: null,
         capacitySnapshot: 24,
+        gameDate: "2026-06-02",
+        today: "2026-06-02",
+      }),
+    ).toBe(30);
+    expect(
+      resolveGameCapacity({
+        defaultCapacity: 30,
+        dateCapacityOverride: null,
+        capacitySnapshot: 24,
+        gameDate: "2026-06-03",
+        today: "2026-06-02",
+      }),
+    ).toBe(30);
+  });
+
+  it("uses capacity snapshots only for past dates", () => {
+    expect(
+      resolveGameCapacity({
+        defaultCapacity: 30,
+        dateCapacityOverride: null,
+        capacitySnapshot: 24,
+        gameDate: "2026-06-01",
+        today: "2026-06-02",
       }),
     ).toBe(24);
     expect(
@@ -56,38 +81,55 @@ describe("capacity rules", () => {
     });
   });
 
-  it("finds default-driven game days that need a capacity snapshot before the default changes", () => {
+  it("finds past default-driven game days that need a capacity snapshot before the default changes", () => {
     expect(
-      getCapacitySnapshotUpdatesBeforeDefaultChange([
-        {
-          date: "2026-05-29",
-          capacity: 24,
-          capacityOverride: null,
-          capacitySnapshot: null,
-          registeredPlayersCount: 21,
-        },
-        {
-          date: "2026-05-30",
-          capacity: 30,
-          capacityOverride: 30,
-          capacitySnapshot: null,
-          registeredPlayersCount: 24,
-        },
-        {
-          date: "2026-05-31",
-          capacity: 24,
-          capacityOverride: null,
-          capacitySnapshot: 24,
-          registeredPlayersCount: 20,
-        },
-        {
-          date: "2026-06-01",
-          capacity: 24,
-          capacityOverride: null,
-          capacitySnapshot: null,
-          registeredPlayersCount: 0,
-        },
-      ]),
+      getCapacitySnapshotUpdatesBeforeDefaultChange(
+        [
+          {
+            date: "2026-05-29",
+            capacity: 24,
+            capacityOverride: null,
+            capacitySnapshot: null,
+            registeredPlayersCount: 21,
+          },
+          {
+            date: "2026-05-30",
+            capacity: 30,
+            capacityOverride: 30,
+            capacitySnapshot: null,
+            registeredPlayersCount: 24,
+          },
+          {
+            date: "2026-05-31",
+            capacity: 24,
+            capacityOverride: null,
+            capacitySnapshot: 24,
+            registeredPlayersCount: 20,
+          },
+          {
+            date: "2026-06-01",
+            capacity: 24,
+            capacityOverride: null,
+            capacitySnapshot: null,
+            registeredPlayersCount: 0,
+          },
+          {
+            date: "2026-06-02",
+            capacity: 28,
+            capacityOverride: null,
+            capacitySnapshot: null,
+            registeredPlayersCount: 18,
+          },
+          {
+            date: "2026-06-03",
+            capacity: 28,
+            capacityOverride: null,
+            capacitySnapshot: null,
+            registeredPlayersCount: 2,
+          },
+        ],
+        "2026-06-02",
+      ),
     ).toEqual([{ date: "2026-05-29", capacitySnapshot: 24 }]);
   });
 });
